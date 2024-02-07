@@ -6,64 +6,70 @@ This tutorial aims to optimize temperature compensation parameters to reduce tem
 ```ini
 [gcode_macro DATA_SAMPLE]
 gcode:
+  {% set bed_temp = params.BED_TEMP|default(90)|int %}
+  {% set nozzle_temp = params.NOZZLE_TEMP|default(250)|int %}
+  {% set min_temp = params.MIN_TEMP|default(40)|int %}
+  {% set max_temp = params.MAX_TEMP|default(70)|int %}
   M106 S255
-  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MAXIMUM=40
+  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MAXIMUM={min_temp}
   M106 S0
   G28
   G0 Z1
-  M104 S250
-  M140 S95
-  G4 P1000
+  M104 S{nozzle_temp}
+  M140 S{bed_temp}
+  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MINIMUM={min_temp}
   IDM_STREAM FILENAME=data1
-  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MINIMUM=70
+  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MINIMUM={max_temp}
   IDM_STREAM FILENAME=data1
   M104 S0
   M140 S0
   M106 S255
   G0 Z80
-  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MAXIMUM=40
+  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MAXIMUM={min_temp}
   M106 S0
   G28 Z0
   G0 Z2
-  M104 S250
-  M140 S95
+  M104 S{nozzle_temp}
+  M140 S{bed_temp}
   G4 P1000
   IDM_STREAM FILENAME=data2
-  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MINIMUM=70
+  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MINIMUM={max_temp}
   IDM_STREAM FILENAME=data2
   M104 S0
   M140 S0
   M106 S255
   G0 Z80
-  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MAXIMUM=40
+  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MAXIMUM={min_temp}
   M106 S0
   G28 Z0
   G0 Z3
-  M104 S250
-  M140 S95
+  M104 S{nozzle_temp}
+  M140 S{bed_temp}
   G4 P1000
   IDM_STREAM FILENAME=data3
-  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MINIMUM=70
+  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MINIMUM={max_temp}
   IDM_STREAM FILENAME=data3
   M104 S0
   M140 S0
   M106 S255
   G0 Z80
-  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MAXIMUM=40
+  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MAXIMUM={min_temp}
   M106 S0
   G28 Z0
   G0 Z5
-  M104 S250
-  M140 S95
+  M104 S{nozzle_temp}
+  M140 S{bed_temp}
   G4 P1000
   IDM_STREAM FILENAME=data4
-  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MINIMUM=70
+  TEMPERATURE_WAIT SENSOR='temperature_sensor IDM_coil' MINIMUM={max_temp}
   IDM_STREAM FILENAME=data4
   M104 S0
   M140 S0
 ```
 
-**Step 2:** Execute the macro. This will generate four files (data1, data2, data3, data4) in the klipper folder. This process takes a long time.
+**Step 2:** Execute `DATA_SAMPLE BED_TMEP=<target bed temperature> NOZZLE_TEMP=<target nozzle temperature> MIN_TEMP=<minimum temperature of sampling range> MAX_TEMP=<maximum temperature of samping range>`  
+if you dont input any parameter,it will run with default parameters(BED_TMEP=90 NOZZLE_TEMP=250 MIN_TEMP=40 MAX_TEMP=70).  
+This will generate four files (data1, data2, data3, data4) in the klipper folder. This process takes a long time.  
 
 **Step 3:** Move the four generated files to the IDM folder in your user directory.
 
