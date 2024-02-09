@@ -1,4 +1,5 @@
 ### Notice
+##### First of all:make sure you are using klipper based on python3.6 or above
 Using this module requires a certain level of knowledge and experience with Klipper. Ensure that you have the ability to configure and modify it before installation.
 
 To maintain accuracy, install the sensor coil board with its top surface as low as possible below the bottom surface of the heater block.
