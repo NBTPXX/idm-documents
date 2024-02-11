@@ -47,4 +47,4 @@ and the command below to upload main firmware
 ```
 sudo dfu-util -d ,0483:df11 -R -a 0 -s 0x8002000:leave -D <Where The Firmware Is>
 ```
-Fill in your data and remember to remove the `< >` brackets.
+Fill in your data and remember to remove the `< >` brackets.Please note that these two commands are different
