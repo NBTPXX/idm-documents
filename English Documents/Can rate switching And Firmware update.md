@@ -37,3 +37,14 @@ cd ~
 The device serial port address refers to the address in the format /dev/serial/by-id/****. Please note that the serial port number for the second time should be different. Re-query it.
 
 Fill in your data and remember to remove the `< >` brackets.
+#### via DFU
+if you managed to get your idm into dfu mode,
+you can use the command below to upload canboot
+```
+sudo dfu-util -d ,0483:df11 -R -a 0 -s 0x8000000:leave -D <Where The Firmware Is>
+```
+and the command below to upload main firmware
+```
+sudo dfu-util -d ,0483:df11 -R -a 0 -s 0x8002000:leave -D <Where The Firmware Is>
+```
+Fill in your data and remember to remove the `< >` brackets.
