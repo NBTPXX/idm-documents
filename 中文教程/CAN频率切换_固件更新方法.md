@@ -24,6 +24,8 @@
 ```
 cd ~/klipper/scripts 
 ~/klippy-env/bin/python -c 'import flash_usb as u; u.enter_bootloader("<你的设备串口地址>")'
+```
+```
 cd ~
 ~/klippy-env/bin/python ~/klipper/lib/canboot/flash_can.py -f <固件所在路径> -d <你的设备串口地址>
 ```
