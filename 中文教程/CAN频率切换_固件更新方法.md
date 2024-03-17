@@ -24,9 +24,23 @@
 ```
 cd ~/klipper/scripts 
 ~/klippy-env/bin/python -c 'import flash_usb as u; u.enter_bootloader("<你的设备串口地址>")'
+```
+```
 cd ~
 ~/klippy-env/bin/python ~/klipper/lib/canboot/flash_can.py -f <固件所在路径> -d <你的设备串口地址>
 ```
 设备串口地址指的是/dev/serial/by-id/****这种格式的地址  
 请注意第二次串口号应与第一次不同，请重新查询  
 上述的内容填写自己的数据，记得删除”<>”括号  
+
+#### 通过dfu上传固件
+如果你通过短接boot0再上电的方式使得你的idm进入了dfu模式  
+可以通过下方指令上传canboot
+```
+sudo dfu-util -d ,0483:df11 -R -a 0 -s 0x8000000:leave -D <文件路径>
+```
+还可以通过下方指令上传主固件
+```
+sudo dfu-util -d ,0483:df11 -R -a 0 -s 0x8002000:leave -D <文件路径>
+```
+上述的内容填写自己的数据，记得删除”<>”括号，请注意两个指令是不一样的

@@ -1,6 +1,9 @@
-本教程旨在针对性优化温补参数，降低温飘，进行本优化耗时较长(1h以上)，如果不温补已经能满足需求则不需要进行本操作。  
-首先将下方宏粘贴到配置文件中
-```
+**Optimizing Temperature Compensation Parameters Tutorial**
+
+This tutorial aims to optimize temperature compensation parameters to reduce temperature drift. The optimization process is time-consuming (over 1 hour). If your printer's temperature compensation meets your requirements, this operation may not be necessary.
+
+**Step 1:** Paste the following macro into your configuration file:
+```ini
 [gcode_macro DATA_SAMPLE]
 gcode:
   {% set bed_temp = params.BED_TEMP|default(90)|int %}
@@ -64,20 +67,23 @@ gcode:
   M140 S0
 ```
 
-使用`DATA_SAMPLE BED_TEMP=指定热床温度 NOZZLE=指定喷嘴温度 MIN_TEMP=采集温度范围最小值 MAX_TEMP=采集温度范围最大值`  
-(若不输入自定义参数，宏将按默认值运行(BED_TMEP=90 NOZZLE_TEMP=250 MIN_TEMP=40 MAX_TEMP=70))  
-即可开始采集数据，之后会在klipper文件夹中生成data1,data2,data3,data4 四个文件，耗时较长。  
-完成后将4个文件移动到用户目录下的IDM文件夹中。
-然后执行
-```
+**Step 2:** Execute `DATA_SAMPLE BED_TMEP=<target bed temperature> NOZZLE_TEMP=<target nozzle temperature> MIN_TEMP=<minimum temperature of sampling range> MAX_TEMP=<maximum temperature of samping range>`  
+if you dont input any parameter,it will run with default parameters(BED_TMEP=90 NOZZLE_TEMP=250 MIN_TEMP=40 MAX_TEMP=70).  
+This will generate four files (data1, data2, data3, data4) in the klipper folder. This process takes a long time.  
+
+**Step 3:** Move the four generated files to the IDM folder in your user directory.
+
+**Step 4:** Execute the following commands:
+```bash
 cd ~/IDM
 ~/klippy-env/bin/python arg_fit.py
 ```
-(请在执行前确认当前使用的是最新的脚本包，如果不是 请重新git clone)  
-运行后会生成出三个参数，并在IDM文件夹中生成一张图片。(这个过程运算量很大，需要一段时间)  
-请检查该文件名为fit_result.png的图片，并判断拟合效果，图片示例如下:  
-![fit_result](/imgs/fit_result.png)  
-第一行为原始数据，第二行为温补后的数据。可以看到这是一个拟合效果比较好的，偏移都被控制在3位数内。
+(Ensure that you are using the latest script package before running. If not, git clone again.)
 
-#### 之后请将生成的参数复制到配置文件中的[IDM]块下,示例如下:  
-![fit_result](/imgs/example.jpg)  
+This will generate three parameters and an image named fit_result.png in the IDM folder. Note that this process requires significant computational power and time.
+
+**Step 5:** Check the fit_result.png image for the fitting result. The first row shows the original data, and the second row shows the data after temperature compensation. Ensure that the fit is effective, and the offsets are controlled within a reasonable range.
+
+**Step 6:** Copy the generated parameters to the [IDM] block in your configuration file. See the example below:
+
+![Example](/imgs/example.jpg)
