@@ -39,9 +39,11 @@ The device serial port address refers to the address in the format /dev/serial/b
 Fill in your data and remember to remove the `< >` brackets.
 #### via DFU
 if you managed to get your idm into dfu mode,
-you can use the command below to upload canboot
+you can use the command below to upload canboot,  
+please note that this method is only applicable to canboot with usb communication.  
+if you are trying to upload canboot for CAN version,please use the second one(the command for main Firmware).  
 ```
-sudo dfu-util -d ,0483:df11 -R -a 0 -s 0x8000000:leave -D <Where The Firmware Is>
+sudo dfu-util -d ,0483:df11 -R -a 0 -s 0x8000000:leave -D <Where The Firmware Is>  
 ```
 and the command below to upload main firmware
 ```
