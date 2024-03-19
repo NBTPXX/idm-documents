@@ -88,7 +88,7 @@ Note: After adding the UUID, remove serial.
 
 -------------------------------------------------
 
-Include the following in the configuration (optional but recommended):
+Include the following in the configuration (necessary for following operations.):
 ```ini
 [force_move]
 enable_force_move: true
