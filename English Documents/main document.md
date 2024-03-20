@@ -110,11 +110,10 @@ If you've configured safe_z_home or homing_override, you can skip this step.
 #### Don't forget to set up [bed_mesh] to avoid errors.
 Omit the zero_reference_position in bed_mesh.
 
-After restarting, home x and y (g28 x y, don't home z), and move the nozzle to the center of the bed. Then enter SET_KINEMATIC_POSITION z=80.
-
-Now, you can control the z-axis movement and bring the nozzle close to the bed (or place an A4 paper for the right gap). Enter SET_KINEMATIC_POSITION z=0 (note that it's different from the previous command).
-
-Execute idm_calibrate. In the offset control box, click -0.1 for offset and confirm. It will automatically calibrate.
+After restarting, home x and y (g28 x y, don't home z), and move the nozzle to the center of the bed. Then enter `SET_KINEMATIC_POSITION z=80.`  
+Now, you can control the z-axis movement and bring the nozzle close to the bed (or place an A4 paper for the right gap). Enter `SET_KINEMATIC_POSITION z=0`   
+(note that it's different from the previous command).  
+Execute `idm_calibrate`. In the offset control box, click -0.1 for offset and confirm. It will automatically calibrate.
 
 If, after calibration, you encounter
 
