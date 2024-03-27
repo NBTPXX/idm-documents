@@ -165,7 +165,8 @@ info_tags:
   desc=idm
 ```
 
-For versions with an accelerometer (lis2dw), add the following to enable it:
+For versions with a lis2dw accelerometer, add the following to enable it:  
+dont put it before the config of `[IDM]`
 ```ini
 [lis2dw]
 cs_pin: idm:PA3
@@ -176,6 +177,17 @@ accel_chip: lis2dw
 probe_points:
     125, 125, 20  #set your prefered calibrating position
 ```
+For versions with a adxl345 accelerometer, add the following to enable it:  
+dont put it before the config of `[IDM]`
+```ini
+[adxl345]
+cs_pin: idm:PA3
+spi_bus: spi1
+
+[resonance_tester]
+accel_chip: adxl345
+probe_points:
+    125, 125, 20  #set your prefered calibrating position
 Configure and use shaper_calibrate for resonance testing.
 
 Adjust the z offset before printing. The z offset is saved in the model_offset variable.
