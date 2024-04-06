@@ -115,10 +115,19 @@ Now, you can control the z-axis movement and bring the nozzle close to the bed (
 (note that it's different from the previous command).  
 Execute `idm_calibrate`. In the offset control box, click -0.1 for offset and confirm. It will automatically calibrate.
 
-If, after calibration, you encounter
-
- issues like not zeroing after a restart or reporting "no model," there might be a format error in your configuration file's auto-generated configuration. Correct the format.
-
+If, after calibration, you encounter issues like not zeroing after a restart or reporting "no model,"   
+there might be a format error in your configuration file's auto-generated configuration. Correct the format.
+#### If you are using high power AC heater pad(over 500W)
+you had better add this macro to avoid AC interference  
+```
+[gcode_macro BED_MESH_CALIBRATE]
+rename_existing: _BED_MESH_CALIBRATE
+gcode:
+    {% set TARGET_TEMP = printer.heater_bed.target %}
+    M140 S0
+    _BED_MESH_CALIBRATE {rawparams}
+    M140 S{TARGET_TEMP}
+```
 For 4Z machines like VORON2.4, add the following configuration to the file:
 ```ini
 [gcode_macro QUAD_GANTRY_LEVEL]
