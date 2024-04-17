@@ -1,5 +1,5 @@
-### 固件视频
-刷入[klipper_eddy_firmware](/klipper_eddy_firmware)下的固件(根据通讯方式选择)  
+### 固件
+更新到[最新固件](IDM固件(Main%20firmware))
 ### 配置
 ```
 [mcu idm]
