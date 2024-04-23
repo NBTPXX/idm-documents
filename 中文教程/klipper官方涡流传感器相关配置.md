@@ -1,5 +1,5 @@
 ### 固件
-更新到[最新固件](IDM固件(Main%20firmware))
+更新到[最新固件](https://gitee.com/NBTP/idm-documents/tree/master/IDM%E5%9B%BA%E4%BB%B6(Main%20firmware))
 ### 配置
 ```
 [mcu idm]
