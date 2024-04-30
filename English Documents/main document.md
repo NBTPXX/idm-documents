@@ -11,10 +11,6 @@ To maintain accuracy, install the sensor coil board with its top surface as low 
   git clone https://gitee.com/NBTP/IDM.git
   ```
 - Run `chmod +x IDM/install.sh` after downloading.
-- If unsure about your pip source or unaware of what pip is, set pip to Tsinghua source using:
-  ```bash
-  ~/klippy-env/bin/pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-  ```
   Then install with:
   ```bash
   IDM/install.sh
