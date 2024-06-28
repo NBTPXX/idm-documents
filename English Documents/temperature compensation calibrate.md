@@ -57,7 +57,7 @@ gcode:
 if you dont input any parameter,it will run with default parameters(BED_TEMP=90 NOZZLE_TEMP=250 MIN_TEMP=40 MAX_TEMP=70).  
 This will generate 3 files (data1, data2, data3) in the klipper folder. This process takes a long time.  
 
-**Step 3:** Move the four generated files to the IDM folder in your user directory.
+**Step 3:** Move the 3 generated files to the IDM folder in your user directory.
 
 **Step 4:** Execute the following commands:
 ```bash
