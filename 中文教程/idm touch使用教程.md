@@ -49,3 +49,11 @@ zero_reference_position: 125, 125
 `IDM_TOUCH CALIBRATE=1`自动进行IDM的模型校准（通常用在touch完成校准后）  
 `IDM_THRESHOLD_SCAN MIN=500`对touch进行阈值校准（请归零后再执行）   
 `PROBE_CALIBRATE METHOD=AUTO`对z偏移进行自动测算
+`SAVE_TOUCH_OFFSET`保存自动z偏移所用的固定z偏移  
+
+#### 操作指导
+首先使用`IDM_TOUCH METHOD=MANAUL`来进行初次校准  
+校准后进行归零操作  
+确保z轴完成归零后，执行`IDM_THRESHOLD_SCAN MIN=500`来对touch阈值进行校准  
+由于可能touch进行自动z偏移的过程中会产生挤压，需要自行测定固定z偏移  
+使用网页上的偏移按钮后，使用`SAVE_TOUCH_OFFSET`将这个偏移量保存给自动z
