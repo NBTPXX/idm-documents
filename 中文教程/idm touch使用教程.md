@@ -45,7 +45,7 @@ zero_reference_position: 125, 125
 #    set this to the middle of your bed
 ```
 #### 指令参考
-`IDM_TOUCH METHOD=MANAUL`手动进行IDM的模型校准（通常用在未对touch进行校准的时候）  
+`IDM_TOUCH METHOD=MANUAL`手动进行IDM的模型校准（通常用在未对touch进行校准的时候）  
 `IDM_TOUCH CALIBRATE=1`自动进行IDM的模型校准（通常用在touch完成校准后）  
 `IDM_THRESHOLD_SCAN MIN=500`对touch进行阈值校准（请归零后再执行）   
 `PROBE_CALIBRATE METHOD=AUTO`对z偏移进行自动测算  
