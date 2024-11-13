@@ -18,11 +18,15 @@ To maintain accuracy, install the sensor coil board with its top surface as low 
 
 ### Configuration Example for printer.cfg
 ```ini
-[idm]
+[mcu idm]
 serial:
 #canbus_uuid:
 # Path to the serial port for the idm device. Typically has the form
 # /dev/serial/by-id/usb-idm_idm_...
+
+[idm]
+mcu:idm
+# mcu of IDM
 speed: 40.
 # Z probing dive speed.
 lift_speed: 5.

@@ -4,11 +4,16 @@
 #### 配置修改
 对于新用户，请直接参照以下配置  
 ```
+[mcu idm]
+serial:
+#canbus_uuid:
+# Path to the serial port for the idm device. Typically has the form
+# /dev/serial/by-id/usb-idm_idm_...
+
 [scanner]
 canbus_uuid: 0ca8d67388c2      
-#serial：      
-#    adjust to suit your scanner, if using usb change to serial.
-#    serial: /dev/serial/by-id/usb-cartographer_cartographer_
+mcu:idm
+# mcu of IDM
 x_offset: 0                          
 #    adjust for your cartographers offset from nozzle to middle of coil
 y_offset: 15                         
