@@ -11,7 +11,7 @@ serial:
 # /dev/serial/by-id/usb-idm_idm_...
 
 [scanner]
-canbus_uuid: 0ca8d67388c2      
+#canbus_uuid: 0ca8d67388c2      
 mcu:idm
 # mcu of IDM
 x_offset: 0                          
