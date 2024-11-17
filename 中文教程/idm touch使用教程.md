@@ -62,4 +62,10 @@ zero_reference_position: 125, 125
 确保z轴完成归零后，执行`IDM_THRESHOLD_SCAN MIN=500`来对touch阈值进行校准  
 由于可能touch进行自动z偏移的过程中会产生挤压，需要自行测定固定z偏移  
 使用网页上的偏移按钮后，使用`SAVE_TOUCH_OFFSET`将这个偏移量保存给自动z  
-使用PROBE_CALIBRATE METHOD=AUTO来进行z偏移测量，测量后请重新g28 Z来使偏移偏移生效
+使用PROBE_CALIBRATE METHOD=AUTO来进行z偏移测量，测量后请重新g28 Z来使偏移偏移生效  
+#### 开始打印gcode
+加入  
+```
+PROBE_CALIBRATE METHOD=AUTO  
+G28 Z
+```
