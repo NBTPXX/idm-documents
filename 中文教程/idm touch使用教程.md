@@ -43,7 +43,8 @@ sensor: idm
 #    this must be set as cartographer unless using IDM etc.
 scanner_touch_z_offset: 0.05         
 ```
-并在bed_mesh的配置中加入以下项目（如果不配置会有报错提示你添加该项）
+并在bed_mesh的配置中加入以下项目（如果不配置会有报错提示你添加该项）  
+该点为自动z偏移时喷嘴戳的坐标
 ```
 [bed_mesh]
 zero_reference_position: 125, 125    
