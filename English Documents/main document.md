@@ -1,4 +1,9 @@
 ### Notice
+
+## if you upgraded the firmware to the lastest version
+please update your scripts and rerun install.sh,  
+then refer to `IDM touch update document.md`
+
 ##### First of all:make sure you are using klipper based on python3.6 or above
 Using this module requires a certain level of knowledge and experience with Klipper. Ensure that you have the ability to configure and modify it before installation.
 

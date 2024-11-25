@@ -1,5 +1,5 @@
 #### 前置需求
-请确保你更新固件到[touch版本](https://gitee.com/NBTP/idm-documents/tree/master/IDM%E5%9B%BA%E4%BB%B6(Main%20firmware)/idm_touch)  
+请确保你更新固件到[touch版本](https://gitee.com/NBTP/idm-documents/tree/master/IDM%E5%9B%BA%E4%BB%B6(Main%20firmware))  
 更新idm脚本至最新版并重新执行`install.sh`
 #### 配置修改
 对于新用户，请直接参照以下配置  
@@ -34,7 +34,7 @@ mesh_runs: 2
 #    Number of passes to make during mesh scan.
 ```
 
-对于从旧版本升级而来的老用户，你们可以直接在旧配置的基础上将所有''idm''修改为''scanner'',  
+对于从旧版本升级而来的老用户，你们可以直接在旧配置的基础上将所有''idm''修改为''scanner'',  请注意自动配置(位于配置文件最下方)中的[idm model xxx]也要改成[scanner model xxx]  
 并在`[scanner]`项中添加下方几个项目
 ```
 calibration_method: touch
