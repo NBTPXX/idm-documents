@@ -55,7 +55,7 @@ gcode:
 
 **Step 2:** Execute `DATA_SAMPLE BED_TMEP=<target bed temperature> NOZZLE_TEMP=<target nozzle temperature> MIN_TEMP=<minimum temperature of sampling range> MAX_TEMP=<maximum temperature of samping range>`  
 if you dont input any parameter,it will run with default parameters(BED_TEMP=90 NOZZLE_TEMP=250 MIN_TEMP=40 MAX_TEMP=70).  
-This will generate 3 files (data1, data2, data3) in the klipper folder. This process takes a long time.  
+This will generate 3 files (data1, data2, data3) in /tmp/. This process takes a long time.  
 
 **Step 3:** Move the 3 generated files to the IDM folder in your user directory.
 
