@@ -15,7 +15,7 @@ To maintain accuracy, install the sensor coil board with its top surface as low 
   ```bash
   git clone https://gitee.com/NBTP/IDM.git
   ```
-- Run `chmod +x IDM/install.sh` after downloading.
+
   Then install with:
   ```bash
   IDM/install.sh
