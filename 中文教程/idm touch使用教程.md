@@ -30,7 +30,7 @@ sensor: idm
 #    this must be set as cartographer unless using IDM etc.
 scanner_touch_z_offset: 0.05         
 #    This is the default and will be overwritten and added to the DO NOT SAVE area by using UI to save z offset
-mesh_runs: 2
+mesh_runs: 1
 #    Number of passes to make during mesh scan.
 ```
 
