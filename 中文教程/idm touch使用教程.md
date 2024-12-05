@@ -68,5 +68,4 @@ zero_reference_position: 125, 125
 加入  
 ```
 PROBE_CALIBRATE METHOD=AUTO  
-G28 Z
 ```

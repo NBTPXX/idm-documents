@@ -102,5 +102,4 @@ Then save the offset using:
 Add the following lines to your G-code start sequence:
 ```
 PROBE_CALIBRATE METHOD=AUTO  
-G28 Z
 ```
