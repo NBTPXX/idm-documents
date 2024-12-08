@@ -113,7 +113,6 @@ z_hop: 10
 If you've configured safe_z_home or homing_override, you can skip this step.
 
 #### Don't forget to set up [bed_mesh] to avoid errors.
-Omit the zero_reference_position in bed_mesh.
 
 After restarting, home x and y (g28 x y, don't home z), and move the nozzle to the center of the bed. Then enter `SET_KINEMATIC_POSITION z=80.`  
 Now, you can control the z-axis movement and bring the nozzle close to the bed (or place an A4 paper for the right gap). Enter `SET_KINEMATIC_POSITION z=0`   
