@@ -32,6 +32,8 @@ scanner_touch_z_offset: 0.05
 #    This is the default and will be overwritten and added to the DO NOT SAVE area by using UI to save z offset
 mesh_runs: 1
 #    Number of passes to make during mesh scan.
+scanner_touch_max_temp:180
+#    戳床时喷嘴下降到该温度
 ```
 
 对于从旧版本升级而来的老用户，你们可以直接在旧配置的基础上将所有''idm''修改为''scanner'',  请注意自动配置(位于配置文件最下方)中的[idm model xxx]也要改成[scanner model xxx]  
