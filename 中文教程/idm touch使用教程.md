@@ -11,27 +11,52 @@ serial:
 # /dev/serial/by-id/usb-idm_idm_...
 
 [scanner]
-#canbus_uuid: 0ca8d67388c2      
 mcu:idm
 # mcu of IDM
-x_offset: 0                          
-#    adjust for your cartographers offset from nozzle to middle of coil
-y_offset: 15                         
-#    adjust for your cartographers offset from nozzle to middle of coil
+speed: 40.
+#   Z probing dive speed.
+lift_speed: 5.
+#   Z probing lift speed.
 backlash_comp: 0.5
 #   Backlash compensation distance for removing Z backlash before measuring
 #   the sensor response.
-# 
-#   Offsets are measured from the centre of your coil, to the tip of your nozzle 
-#   on a level axis. It is vital that this is accurate. 
-calibration_method: touch
-#    leave this as touch unless you want to use scan only for everything. 
-sensor: idm
-#    this must be set as cartographer unless using IDM etc.
-scanner_touch_z_offset: 0.05         
-#    This is the default and will be overwritten and added to the DO NOT SAVE area by using UI to save z offset
+x_offset: 0.
+#   X offset of idm from the nozzle.
+y_offset: 21.1
+#   Y offset of idm from the nozzle.
+trigger_distance: 2.
+#   idm trigger distance for homing.
+trigger_dive_threshold: 1.5
+#   Threshold for range vs dive mode probing. Beyond `trigger_distance +
+#   trigger_dive_threshold` a dive will be used.
+trigger_hysteresis: 0.006
+#   Hysteresis on trigger threshold for untriggering, as a percentage of the
+#   trigger threshold.
+cal_nozzle_z: 0.1
+#   Expected nozzle offset after completing manual Z offset calibration.
+cal_floor: 0.1
+#   Minimum z bound on sensor response measurement.
+cal_ceil:5.
+#   Maximum z bound on sensor response measurement.
+cal_speed: 1.0
+#   Speed while measuring response curve.
+cal_move_speed: 10.
+#   Speed while moving to position for response curve measurement.
+default_model_name: default
+#   Name of default idm model to load.
+mesh_main_direction: x
+#   Primary travel direction during mesh measurement.
+#mesh_overscan: -1
+#   Distance to use for direction changes at mesh line ends. Omit this setting
+#   and a default will be calculated from line spacing and available travel.
+mesh_cluster_size: 1
+#   Radius of mesh grid point clusters.
 mesh_runs: 1
-#    Number of passes to make during mesh scan.
+#   Number of passes to make during mesh scan.
+calibration_method: touch
+#    校准方法的设置，如果你不想使用touch可以设置为scan来直接兼容旧版本的命令ng. 
+sensor: idm
+#   传感器名称，idm/cartographer
 scanner_touch_max_temp:180
 #    戳床时喷嘴下降到该温度
 ```
