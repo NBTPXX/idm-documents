@@ -12,3 +12,6 @@ tap使用的限位引脚配置
 ```
 配置好之后使用`idm_touch calibrate=1`时会默认使用该触发方式进行z归零之后自动开始校准，  
 对z偏移进行校准请使用`probe_calibrate method=auto`
+
+由于可能TAP进行自动z偏移的过程中会产生挤压，需要自行测定固定z偏移 
+使用网页上的偏移按钮后，使用SAVE_TOUCH_OFFSET将这个偏移量保存给自动z 
