@@ -1,13 +1,4 @@
-对于从旧版本升级而来的老用户，你们可以直接在旧配置的基础上将所有''idm''修改为''scanner'',  请注意自动配置(位于配置文件最下方)中的[idm model xxx]也要改成[scanner model xxx]  
-并在`[scanner]`项中添加下方几个项目
-```
-calibration_method: touch
-#    leave this as touch unless you want to use scan only for everything. 
-sensor: idm
-#    this must be set as cartographer unless using IDM etc.
-scanner_touch_z_offset: 0.05         
-```
-并在bed_mesh的配置中加入以下项目（如果不配置会有报错提示你添加该项）  
+在bed_mesh的配置中加入以下项目（如果不配置会有报错提示你添加该项）  
 该点为自动z偏移时喷嘴戳的坐标
 ```
 [bed_mesh]
