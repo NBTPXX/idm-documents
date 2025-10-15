@@ -245,6 +245,6 @@ IDM_MODEL_REMOVE NAME=<your_model_name>
 
 ## 7. Alternative Z-Probing Methods
 
-- For touch (bed contact) based Z offset, see: *idm touch document*
+- For touch (bed contact) based Z offset, see: *IDM touch update document*
 - For tap-based or endstop-based Z probing, see: *second probe document*
 - There is an option to use Klipper’s official eddy-current (capacitive) sensor support, but it’s **not recommended**—refer to the official config for details.
