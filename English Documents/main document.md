@@ -1,185 +1,207 @@
-### Notice
+# IDM Module – English Guide
 
-## if you upgraded the firmware to the lastest version
-please update your scripts and rerun install.sh,  
-then refer to `IDM touch update document.md`
+## Prerequisites
 
-##### First of all:make sure you are using klipper based on python3.6 or above
-Using this module requires a certain level of knowledge and experience with Klipper. Ensure that you have the ability to configure and modify it before installation.
+- Ensure your Klipper installation is using **Python 3.6 or newer**.
+- You should already have some familiarity with configuring Klipper. This guide assumes you can troubleshoot and modify configs independently.
+- For best accuracy, install the sensor coil so that its top surface lies **just below** the bottom surface of your heated bed.
 
-To maintain accuracy, install the sensor coil board with its top surface as low as possible below the bottom surface of the heater block.
+> **Warning**: Do **not** execute any commands or steps that are **not** explicitly described in this tutorial—especially `G28`. Only perform the steps mentioned.
 
-## Important Instructions
-- Follow the tutorial strictly, especially regarding commands like G28. Only perform the mentioned steps.
-- Execute the following git command in the user directory to download the accompanying script:
-  ```bash
-  git clone https://gitee.com/NBTP/IDM.git
-  ```
+---
 
-  Then install with:
-  ```bash
-  IDM/install.sh
-  ```
+## 1. Install the Supporting Scripts
 
-### Configuration Example for printer.cfg
+In your home directory (e.g. `~/`), clone the IDM toolkit:
+
+```bash
+git clone https://gitee.com/NBTP/IDM.git
+```
+
+Make the install script executable:
+
+```bash
+chmod +x IDM/install.sh
+```
+
+If you're unsure whether your `pip` index is configured properly (or if pip itself is unfamiliar to you), it's recommended to use a mirror before installing:
+
+```bash
+~/klippy-env/bin/pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
+```
+
+Then run the install:
+
+```bash
+IDM/install.sh
+```
+
+---
+
+## 2. Add IDM Configuration to `printer.cfg`
+
+Below is a sample snippet you can add to your Klipper `printer.cfg`:
+
 ```ini
 [mcu idm]
 serial:
-#canbus_uuid:
-# Path to the serial port for the idm device. Typically has the form
-# /dev/serial/by-id/usb-idm_idm_...
+# canbus_uuid:
 
 [idm]
-mcu:idm
-# mcu of IDM
-speed: 40.
-# Z probing dive speed.
-lift_speed: 5.
-# Z probing lift speed.
+mcu: idm
+# speed: 40.       # Z probing dive speed
+# lift_speed: 5    # Z probing lift speed
 backlash_comp: 0.5
-# Backlash compensation distance for removing Z backlash before measuring
-# the sensor response.
-x_offset: 0.
-# X offset of idm from the nozzle.
+x_offset: 0.0
 y_offset: 21.1
-# Y offset of idm from the nozzle.
-trigger_distance: 2.
-# idm trigger distance for homing.
+trigger_distance: 2.0
 trigger_dive_threshold: 1.5
-# Threshold for range vs dive mode probing. Beyond `trigger_distance +
-# trigger_dive_threshold` a dive will be used.
 trigger_hysteresis: 0.006
-# Hysteresis on trigger threshold for untriggering, as a percentage of the
-# trigger threshold.
 cal_nozzle_z: 0.1
-# Expected nozzle offset after completing manual Z offset calibration.
 cal_floor: 0.1
-# Minimum z bound on sensor response measurement.
-cal_ceil:5.
-# Maximum z bound on sensor response measurement.
+cal_ceil: 5.0
 cal_speed: 1.0
-# Speed while measuring response curve.
-cal_move_speed: 10.
-# Speed while moving to position for response curve measurement.
+cal_move_speed: 10.0
 default_model_name: default
-# Name of the default idm model to load.
 mesh_main_direction: x
-# Primary travel direction during mesh measurement.
-#mesh_overscan: -1
-# Distance to use for direction changes at mesh line ends. Omit this setting
-# and a default will be calculated from line spacing and available travel.
+# mesh_overscan: -1
 mesh_cluster_size: 1
-# Radius of mesh grid point clusters.
 mesh_runs: 1
-# Number of passes to make during mesh scan.
+calibration_method: touch
+sensor: idm
+scanner_touch_max_temp: 180
+scanner_touch_speed: 5
+scanner_touch_accel: 100
 ```
 
-Adjust the x and y direction offsets in the configuration. Ensure that during calibration, the nozzle moves the coils to the original xy position of the nozzle.
+- Adjust `x_offset` and `y_offset` so that during calibration, the nozzle moves to the same XY position the coil originally occupied.
+- If your IDM uses **CAN** instead of serial, replace `serial:` with `canbus_uuid:`. You can find the UUID with:
 
-Add this configuration to printer.cfg and modify serial to your IDM's serial number. To find the IDM serial, use the command:
-```bash
-ls /dev/serial/by-id/*
-```
+  ```bash
+  ~/klippy-env/bin/python ~/klipper/lib/canboot/flash_can.py -q
+  ```
 
-### For CAN Version
-Replace serial with canbus_uuid.
+- After specifying `canbus_uuid`, remove the `serial:` line.
 
-Use the following command to search for the CAN UUID and fill it in:
-```bash
-~/klippy-env/bin/python ~/klipper/lib/canboot/flash_can.py -q
-```
+Also add:
 
-Note: After adding the UUID, remove serial.
-
--------------------------------------------------
-
-Include the following in the configuration (necessary for following operations.):
 ```ini
 [force_move]
 enable_force_move: true
 ```
 
-### Remove the [probe] Module
-Remove the [probe] module from your configuration.
+If you previously used a `[probe]` module (e.g., `klicky`), remove it. Then in your Z-axis stepper config, change:
 
-If you've used Klicky, remove references to its scripts. Modify z limit (after stepper_z's endstop_pin:) to probe:z_virtual_endstop.
+```ini
+endstop_pin:
+```
 
-Also, set:
+to:
+
+```ini
+endstop_pin: probe:z_virtual_endstop
+```
+
+You will also need:
+
 ```ini
 [safe_z_home]
-home_xy_position: <your_x_axis_center_coordinate>,<your_y_axis_center_coordinate>
+home_xy_position: <your X center>,<your Y center>
 z_hop: 10
 ```
-If you've configured safe_z_home or homing_override, you can skip this step.
 
-#### Don't forget to set up [bed_mesh] to avoid errors.
+If `safe_z_home` or `homing_override` is already present, you may omit this.
 
-After restarting, home x and y (g28 x y, don't home z), and move the nozzle to the center of the bed. Then enter `SET_KINEMATIC_POSITION z=80.`  
-Now, you can control the z-axis movement and bring the nozzle close to the bed (or place an A4 paper for the right gap). Enter `SET_KINEMATIC_POSITION z=0`   
-(note that it's different from the previous command).  
-Execute `idm_calibrate`. In the offset control box, click -0.1 for offset and confirm. It will automatically calibrate.
+---
 
-If, after calibration, you encounter issues like not zeroing after a restart or reporting "no model,"   
-there might be a format error in your configuration file's auto-generated configuration. Correct the format.
-#### If you are using high power AC heater pad(over 500W)
-you had better add this macro to avoid AC interference  
+## 3. Calibrate IDM
+
+After restarting Klipper, **do not home Z immediately**—only home X and Y:
+
+```gcode
+G28 X Y
 ```
+
+Then move the toolhead to the bed center and run:
+
+```gcode
+SET_KINEMATIC_POSITION Z=80
+```
+
+Lower the nozzle carefully to the bed (or use a sheet of paper to gauge a proper gap), and then:
+
+```gcode
+SET_KINEMATIC_POSITION Z=0
+```
+
+Finally, run:
+
+```gcode
+idm_calibrate
+```
+
+When prompted, use the control to reduce offset (e.g. `‑0.1`) to position the nozzle just touching, then confirm. The calibration sequence will run automatically.
+
+If after calibration and rebooting your printer fails to zero Z or shows “no model,” that indicates a config formatting error—please correct your syntax.
+
+---
+
+## 4. Optional Macros & Advanced Configurations
+
+### High-Power AC Heated Beds
+
+For beds drawing over ~500 W, interference during scanning is common. Override the bed mesh macro to reduce interference:
+
+```ini
 [gcode_macro BED_MESH_CALIBRATE]
 rename_existing: _BED_MESH_CALIBRATE
 gcode:
-    {% set TARGET_TEMP = printer.heater_bed.target %}
-    M140 S0
-    _BED_MESH_CALIBRATE {rawparams}
-    M140 S{TARGET_TEMP}
+  {% set TARGET_TEMP = printer.heater_bed.target %}
+  M140 S0
+  _BED_MESH_CALIBRATE {rawparams}
+  M140 S{TARGET_TEMP}
 ```
-For 4Z machines like VORON2.4, add the following configuration to the file:
+
+### Multi-Z / Gantry Machines
+
+For 4‑Z systems (like Voron 2.4):
+
 ```ini
 [gcode_macro QUAD_GANTRY_LEVEL]
 rename_existing: _QUAD_GANTRY_LEVEL
 gcode:
-    SAVE_GCODE_STATE NAME=STATE_QGL
-    BED_MESH_CLEAR
-    {% if not printer.quad_gantry_level.applied %}
-      _QUAD_GANTRY_LEVEL horizontal_move_z=10 retry_tolerance=1
-    {% endif %}
-    _QUAD_GANTRY_LEVEL horizontal_move_z=2
-    G28 Z
-    RESTORE_GCODE_STATE NAME=STATE_QGL
+  SAVE_GCODE_STATE NAME=STATE_QGL
+  BED_MESH_CLEAR
+  {% if not printer.quad_gantry_level.applied %}
+    _QUAD_GANTRY_LEVEL horizontal_move_z=10 retry_tolerance=1
+  {% endif %}
+  _QUAD_GANTRY_LEVEL horizontal_move_z=2
+  G28 Z
+  RESTORE_GCODE_STATE NAME=STATE_QGL
 ```
 
-For 3Z machines like VORON Trident, add the following configuration:
+For 3-fork Z systems (Voron Trident, etc.):
+
 ```ini
 [gcode_macro Z_TILT_ADJUST]
 rename_existing: _Z_TILT_ADJUST
 gcode:
-    SAVE_GCODE_STATE NAME=STATE_Z_TILT
-    BED_MESH_CLEAR
-    {% if not printer.z_tilt.applied %}
-      _Z_TILT_ADJUST horizontal_move_z=10 retry_tolerance=1
-    {% endif %}
-    _Z_TILT_ADJUST horizontal_move_z=2
-    G28 Z
-    RESTORE_GCODE_STATE NAME=STATE_Z_TILT
+  SAVE_GCODE_STATE NAME=STATE_Z_TILT
+  BED_MESH_CLEAR
+  {% if not printer.z_tilt.applied %}
+    _Z_TILT_ADJUST horizontal_move_z=10 retry_tolerance=1
+  {% endif %}
+  _Z_TILT_ADJUST horizontal_move_z=2
+  G28 Z
+  RESTORE_GCODE_STATE NAME=STATE_Z_TILT
 ```
 
-It's recommended to add the following configuration to the moonraker.conf file for easy script updates:
-```ini
-[update_manager idm]
-type: git_repo
-channel: dev
-path: ~/IDM
-origin: https://gitee.com/NBTP/IDM.git
-env: ~/klippy-env/bin/python
-requirements: requirements.txt
-install_script: install.sh
-is_system_service: False
-managed_services: klipper
-info_tags:
-  desc=idm
-```
+---
 
-For versions with a lis2dw accelerometer, add the following to enable it:  
-dont put it before the config of `[IDM]`
+## 5. Optional Accelerometer Support
+
+If your hardware includes accelerometer support (e.g. LIS2DW or ADXL345), place this configuration **after** the `[idm]` section:
+
 ```ini
 [lis2dw]
 cs_pin: idm:PA3
@@ -188,24 +210,41 @@ spi_bus: spi1
 [resonance_tester]
 accel_chip: lis2dw
 probe_points:
-    125, 125, 20  #set your prefered calibrating position
+  125, 125, 20
 ```
-For versions with a adxl345 accelerometer, add the following to enable it:  
-dont put it before the config of `[IDM]`
-```ini
-[adxl345]
-cs_pin: idm:PA3
-spi_bus: spi1
 
-[resonance_tester]
-accel_chip: adxl345
-probe_points:
-    125, 125, 20  #set your prefered calibrating position
-Configure and use shaper_calibrate for resonance testing.
+---
 
-Adjust the z offset before printing. The z offset is saved in the model_offset variable.
+## 6. Saving and Switching Calibration Profiles
 
-### Note
-Before adjusting the z offset, ensure to disable the bed mesh, complete mechanical leveling, and zero once again.
+To save your current calibration under a name:
 
-#### We also recommend using [[axis_twist_compesation]](https://www.klipper3d.org/Config_Reference.html?h=axis#axis_twist_compensation) to ensure the effectiveness of the mesh bed compensation
+```gcode
+IDM_MODEL_SAVE NAME=<your_model_name>
+```
+
+Later, you can load it with:
+
+```gcode
+IDM_MODEL_SELECT NAME=<your_model_name>
+```
+
+List all saved models with:
+
+```gcode
+IDM_MODEL_LIST
+```
+
+Delete a named calibration with:
+
+```gcode
+IDM_MODEL_REMOVE NAME=<your_model_name>
+```
+
+---
+
+## 7. Alternative Z-Probing Methods
+
+- For touch (bed contact) based Z offset, see: *idm touch document*
+- For tap-based or endstop-based Z probing, see: *second probe document*
+- There is an option to use Klipper’s official eddy-current (capacitive) sensor support, but it’s **not recommended**—refer to the official config for details.
