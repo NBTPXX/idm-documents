@@ -171,10 +171,18 @@ ls /dev/serial/by-id/*
 
 ### For CAN Version
 
-For CAN version, use canbus_uuid instead of serial. Use the following command to search for the CAN UUID and fill it in:
+For CAN version, use canbus_uuid instead of serial. Use the following command to search for the CAN UUID:
+
+**CanBoot (legacy):**
 
 ```bash
 ~/klippy-env/bin/python ~/klipper/lib/canboot/flash_can.py -q
+```
+
+**Katapult (new):**
+
+```bash
+~/klippy-env/bin/python ~/klipper/lib/katapult/flashtool.py -i can0 -q
 ```
 
 **Note:** After filling in the UUID, please delete the `serial:` line.
