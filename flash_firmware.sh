@@ -212,10 +212,12 @@ find_firmware() {
         fi
     fi
 
-    if [[ "${freq}" == "USB" ]]; then
-        pattern="${pattern}*[Uu][Ss][Bb]*"
-    else
-        pattern="${pattern}*${freq}*"
+    if [[ -n "${freq}" ]]; then
+        if [[ "${freq}" == "USB" ]]; then
+            pattern="${pattern}*[Uu][Ss][Bb]*"
+        else
+            pattern="${pattern}*${freq}*"
+        fi
     fi
 
     if [[ "${category}" == "main" ]]; then
@@ -578,7 +580,7 @@ advanced_flash() {
     fi
 
     if [[ "${MODE_NAME}" == "USB" ]]; then
-        FREQ_LABEL="USB"
+        FREQ_LABEL=""
     else
         select_frequency
     fi
@@ -655,7 +657,7 @@ simple_flash() {
     fi
 
     if [[ "${MODE_NAME}" == "USB" ]]; then
-        FREQ_LABEL="USB"
+        FREQ_LABEL=""
     else
         select_frequency
     fi

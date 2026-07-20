@@ -420,7 +420,7 @@ document.getElementById("mode-tabs").addEventListener("click", function(e) {
 function updateFirmwareList() {
   const hw = document.getElementById("hw-platform").value;
   const mode = document.getElementById("flash-mode").value;
-  const freq = mode === "USB" ? "USB" : mode === "DFU" ? "" : document.getElementById("frequency").value;
+  const freq = (mode === "CAN") ? document.getElementById("frequency").value : "";
   const cat = document.getElementById("fw-category").value;
   const container = document.getElementById("fw-list");
   const selSpan = document.getElementById("fw-selected");
@@ -553,7 +553,7 @@ async function queryDFU() {
 async function startFlash() {
   const mode = document.getElementById("flash-mode").value;
   const hw = document.getElementById("hw-platform").value;
-  const freq = mode === "CAN" ? document.getElementById("frequency").value : (mode === "USB" ? "USB" : "");
+  const freq = mode === "CAN" ? document.getElementById("frequency").value : "";
   const cat = document.getElementById("fw-category").value;
 
   const selFw = document.querySelector("#fw-list .fw-item.selected");
