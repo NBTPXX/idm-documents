@@ -593,9 +593,16 @@ async function enterBootloader() {
 async function exitBootloader() {
   let bl = document.getElementById("boot-serial").value.trim();
   if (!bl) {
-    bl = document.getElementById("serial-device").value.trim();
+    logConsole("info", "No BL serial cached, auto-scanning...");
+    const r = await fetch("/api/devices/usb/bootloader");
+    const d = await r.json();
+    bl = d.bootloader_serial || "";
+    if (bl) {
+      document.getElementById("boot-serial").value = bl;
+      logConsole("success", "Found BL: " + bl);
+    }
   }
-  if (!bl) { logConsole("error", t("err_enter_serial")); return; }
+  if (!bl) { logConsole("error", "No bootloader device found"); return; }
   logConsole("info", "Exiting BL: " + bl);
   try {
     const r = await fetch("/api/devices/usb/exit-bl", {
