@@ -88,11 +88,11 @@ EOF
     fi
 
     ASVC_FILE="${HOME}/printer_data/moonraker.asvc"
-    if grep -q "^${SERVICE_NAME}$" "${ASVC_FILE}" 2>/dev/null; then
-        print_info "${SERVICE_NAME} already in moonraker.asvc, skipping"
+    if grep -q "^${UPDATE_NAME}$" "${ASVC_FILE}" 2>/dev/null; then
+        print_info "${UPDATE_NAME} already in moonraker.asvc, skipping"
     else
-        print_info "Adding ${SERVICE_NAME} to ${ASVC_FILE} ..."
-        echo "${SERVICE_NAME}" >> "${ASVC_FILE}"
+        print_info "Adding ${UPDATE_NAME} to ${ASVC_FILE} ..."
+        echo "${UPDATE_NAME}" >> "${ASVC_FILE}"
         print_ok "moonraker.asvc updated"
     fi
 
