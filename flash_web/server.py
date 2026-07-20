@@ -621,21 +621,21 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                 self.send_json({"success": False, "error": "missing serial_device"}, 400)
                 return
             try:
-                import serial as pyserial
-                s = pyserial.Serial(serial, timeout=0.5)
-                s.setDTR(False)
-                time.sleep(0.1)
-                s.setDTR(True)
-                s.close()
-                time.sleep(1)
+                cmd = [
+                    KLIPPER_ENV, "-c",
+                    f"import flash_usb as u; u.send_reset('{serial}')"
+                ]
+                subprocess.run(cmd, capture_output=True, timeout=10)
                 self.send_json({"success": True})
             except Exception:
                 try:
-                    cmd = [
-                        KLIPPER_ENV, "-c",
-                        f"import flash_usb as u; u.send_reset('{serial}')"
-                    ]
-                    subprocess.run(cmd, capture_output=True, timeout=10)
+                    import serial as pyserial
+                    s = pyserial.Serial(serial, timeout=0.5)
+                    s.setDTR(False)
+                    time.sleep(0.1)
+                    s.setDTR(True)
+                    s.close()
+                    time.sleep(1)
                     self.send_json({"success": True})
                 except Exception as e:
                     self.send_json({"success": False, "error": str(e)})
