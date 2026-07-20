@@ -913,11 +913,7 @@
 
       function freqMatches(name, freq) {
         const n = name.toLowerCase();
-        if (freq === "1M")
-          return (
-            n.includes("1m") ||
-            (n.includes("can") && !n.includes("250k") && !n.includes("500k"))
-          );
+        if (freq === "1M") return n.includes("1m");
         if (freq === "500k") return n.includes("500k");
         if (freq === "250k") return n.includes("250k");
         if (freq === "other")
