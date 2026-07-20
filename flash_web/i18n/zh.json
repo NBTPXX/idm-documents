@@ -81,6 +81,7 @@
     "flash_done": "刷写完成!",
     "flash_fail": "刷写失败, 返回码: {code}",
     "err_timeout": "错误: 操作超时",
-    "cancelled": "已取消"
+    "cancelled": "已取消",
+    "retry_sudo": "使用 sudo 重试: {cmd}"
   }
 }

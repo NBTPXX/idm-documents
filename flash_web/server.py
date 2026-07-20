@@ -177,13 +177,28 @@ def detect_bootloader_serial(serial_device):
     return candidate
 
 
+def _run_dfutil(args, timeout=300):
+    for try_sudo in [False, True]:
+        cmd = (["sudo", "-n"] if try_sudo else []) + ["dfu-util"] + args
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            if result.returncode == 0:
+                return result
+            if try_sudo:
+                return result
+        except Exception:
+            if try_sudo:
+                raise
+    return None
+
+
 def query_dfu_devices():
     try:
-        result = subprocess.run(
-            ["sudo", "dfu-util", "-l"],
-            capture_output=True, text=True, timeout=10
-        )
-        return {"raw_output": result.stdout + result.stderr, "devices_found": "Found" in result.stdout}
+        result = _run_dfutil(["-l"], timeout=10)
+        if result is None:
+            return {"error": "dfu-util not available", "devices_found": False}
+        output = result.stdout + result.stderr
+        return {"raw_output": output, "devices_found": "Found" in output}
     except Exception as e:
         return {"error": str(e), "devices_found": False}
 
@@ -369,8 +384,10 @@ def run_flash(task):
                 cmd = [KLIPPER_ENV, flash_tool, "-f", fw_file, "-d", bootloader_serial]
 
         elif mode == "DFU":
-            cmd = ["sudo", "dfu-util", "-d", ",0483:df11", "-R", "-a", "0",
-                   "-s", f"{dfu_addr}:leave", "-D", fw_file]
+            dfu_args = ["-d", ",0483:df11", "-R", "-a", "0",
+                        "-s", f"{dfu_addr}:leave", "-D", fw_file]
+            cmd = ["dfu-util"] + dfu_args
+            sudo_cmd = ["sudo", "-n", "dfu-util"] + dfu_args
 
         else:
             task.status = "failed"
@@ -394,6 +411,22 @@ def run_flash(task):
                 task.append_output(line)
 
         process.wait()
+
+        if mode == "DFU" and process.returncode != 0 and cmd[0] != "sudo":
+            log(_t(lang, "retry_sudo", cmd=" ".join(sudo_cmd)))
+            process = subprocess.Popen(
+                sudo_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
+            task.process = process
+            for line in iter(process.stdout.readline, ""):
+                line = line.rstrip()
+                if line:
+                    task.append_output(line)
+            process.wait()
 
         if process.returncode == 0:
             task.status = "completed"

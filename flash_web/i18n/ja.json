@@ -81,6 +81,7 @@
     "flash_done": "書込完了!",
     "flash_fail": "書込失敗、コード: {code}",
     "err_timeout": "エラー: タイムアウト",
-    "cancelled": "キャンセル"
+    "cancelled": "キャンセル",
+    "retry_sudo": "sudo で再試行: {cmd}"
   }
 }

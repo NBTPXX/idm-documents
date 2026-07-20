@@ -493,7 +493,7 @@ flash_dfu() {
     print_info "请确保设备已进入 DFU 模式 (短接 BOOT0 后上电)"
     print_info "如果设备已连接，将列出 DFU 设备:"
     echo ""
-    sudo dfu-util -l 2>/dev/null || true
+    dfu-util -l 2>/dev/null || sudo -n dfu-util -l 2>/dev/null || true
     echo ""
 
     if [[ "${FW_CATEGORY}" == "main" ]]; then
@@ -512,11 +512,15 @@ flash_dfu() {
         return 0
     fi
 
-    local cmd=(sudo dfu-util -d ,0483:df11 -R -a 0 -s "${DFU_ADDR}:leave" -D "${FW_FILE}")
+    local dfu_args=(-d ,0483:df11 -R -a 0 -s "${DFU_ADDR}:leave" -D "${FW_FILE}")
+    local cmd=(dfu-util "${dfu_args[@]}")
+    local sudo_cmd=(sudo -n dfu-util "${dfu_args[@]}")
 
     print_info "执行命令: ${cmd[*]}"
     echo ""
-    if "${cmd[@]}"; then
+    if "${cmd[@]}" 2>/dev/null; then
+        print_success "固件刷写完成! 设备将自动重启"
+    elif "${sudo_cmd[@]}"; then
         print_success "固件刷写完成! 设备将自动重启"
     else
         print_error "刷写失败"
@@ -544,7 +548,7 @@ query_devices_only() {
 
     echo ""
     print_info "DFU 设备:"
-    sudo dfu-util -l 2>/dev/null || echo "  (无)"
+    dfu-util -l 2>/dev/null || sudo -n dfu-util -l 2>/dev/null || echo "  (无)"
 }
 
 # -----------------------------------------------------------

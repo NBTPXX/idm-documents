@@ -81,6 +81,7 @@
     "flash_done": "Запись завершена!",
     "flash_fail": "Ошибка записи, код: {code}",
     "err_timeout": "Ошибка: таймаут",
-    "cancelled": "Отменено"
+    "cancelled": "Отменено",
+    "retry_sudo": "Повтор с sudo: {cmd}"
   }
 }

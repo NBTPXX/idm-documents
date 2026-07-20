@@ -81,6 +81,7 @@
     "flash_done": "Flash complete!",
     "flash_fail": "Flash failed, exit code: {code}",
     "err_timeout": "Error: operation timed out",
-    "cancelled": "Cancelled"
+    "cancelled": "Cancelled",
+    "retry_sudo": "Retrying with sudo: {cmd}"
   }
 }
