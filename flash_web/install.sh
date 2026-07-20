@@ -88,6 +88,7 @@ EOF
         cat >> "${MOONRAKER_CONF}" <<EOF
 
 [service ${SERVICE_NAME}]
+type: systemd
 EOF
         print_ok "Moonraker service registered"
     fi
