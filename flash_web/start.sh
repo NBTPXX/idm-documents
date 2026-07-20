@@ -17,6 +17,16 @@ fi
 
 export MOONRAKER_URL="${MOONRAKER_URL:-http://localhost:7125}"
 
+if [[ -z "${IDM_FW_BASE:-}" ]]; then
+    if [[ -d "${SCRIPT_DIR}/../IDM固件(Main firmware)" ]]; then
+        export IDM_FW_BASE="$(cd "${SCRIPT_DIR}/.." && pwd)"
+    elif [[ -d "${HOME}/idm-documents/IDM固件(Main firmware)" ]]; then
+        export IDM_FW_BASE="${HOME}/idm-documents"
+    else
+        export IDM_FW_BASE="${SCRIPT_DIR}/.."
+    fi
+fi
+
 echo ""
 echo "  启动地址: http://0.0.0.0:8888"
 echo "  Moonraker: ${MOONRAKER_URL}"

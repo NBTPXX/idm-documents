@@ -16,6 +16,7 @@ print_warn()  { echo -e "${YELLOW}  !! $1${NC}"; }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 INSTALL_DIR="${HOME}/IDM/flash_web"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SERVICE_NAME="idm-flash-web"
 SERVICE_PORT="8888"
 
@@ -74,7 +75,6 @@ else
     else
         print_info "Adding [update_manager ${UPDATE_NAME}] to ${MOONRAKER_CONF} ..."
 
-        REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
         REPO_REMOTE=$(cd "${REPO_DIR}" && git remote get-url origin 2>/dev/null || echo "https://gitee.com/NBTP/idm-documents.git")
 
         cat >> "${MOONRAKER_CONF}" <<EOF
@@ -103,6 +103,7 @@ USER_SYSTEMD_DIR="${HOME}/.config/systemd/user"
 
 if [[ -f "${SERVICE_FILE}" ]]; then
     sed "s|%h|${HOME}|g" "${SERVICE_FILE}" > "/tmp/${SERVICE_NAME}.service"
+    echo "Environment=IDM_FW_BASE=${REPO_DIR}" >> "/tmp/${SERVICE_NAME}.service"
 
     if command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
         print_info "Installing system-level systemd service..."

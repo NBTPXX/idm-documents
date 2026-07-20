@@ -21,9 +21,10 @@ import mimetypes
 # 配置
 # ============================================================
 SCRIPT_DIR = Path(__file__).resolve().parent.parent
-FW_DIR_IDM = SCRIPT_DIR / "IDM固件(Main firmware)"
-FW_DIR_CANBOOT = SCRIPT_DIR / "Canboot通讯频率覆写用固件(canboot deployer firmware)"
-FW_DIR_RP2040 = SCRIPT_DIR / "rp2040"
+FW_BASE = Path(os.environ.get("IDM_FW_BASE", str(SCRIPT_DIR)))
+FW_DIR_IDM = FW_BASE / "IDM固件(Main firmware)"
+FW_DIR_CANBOOT = FW_BASE / "Canboot通讯频率覆写用固件(canboot deployer firmware)"
+FW_DIR_RP2040 = FW_BASE / "rp2040"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 
 KLIPPER_ENV = os.path.expanduser("~/klippy-env/bin/python")
