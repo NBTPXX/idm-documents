@@ -36,6 +36,8 @@
   "btn_detect_dfu": "DFU検出",
   "btn_start_flash": "書込開始",
   "btn_cancel": "取消",
+  "btn_enter_bl": "BLに入る",
+  "btn_exit_bl": "BLを出る",
   "btn_clear": "クリア",
   "console_title": "コンソール",
   "progress_status": "状態: ",

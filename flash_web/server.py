@@ -591,6 +591,52 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
             else:
                 self.send_json({"error": "task not running"}, 404)
 
+        elif path == "/api/devices/usb/enter-bl":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body)
+            serial = data.get("serial_device", "")
+            if not serial:
+                self.send_json({"success": False, "error": "missing serial_device"}, 400)
+                return
+            try:
+                cmd = [
+                    KLIPPER_ENV, "-c",
+                    f"import flash_usb as u; u.enter_bootloader('{serial}')"
+                ]
+                cwd = os.path.join(KLIPPER_DIR, "scripts")
+                if not os.path.isdir(cwd):
+                    cwd = None
+                subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=15)
+                self.send_json({"success": True})
+            except Exception as e:
+                self.send_json({"success": False, "error": str(e)})
+
+        elif path == "/api/devices/usb/exit-bl":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body)
+            serial = data.get("serial_device", "")
+            if not serial:
+                self.send_json({"success": False, "error": "missing serial_device"}, 400)
+                return
+            try:
+                import serial as pyserial
+                s = pyserial.Serial(serial, 1200, timeout=0.5)
+                s.close()
+                time.sleep(0.5)
+                self.send_json({"success": True})
+            except Exception:
+                try:
+                    cmd = [
+                        KLIPPER_ENV, "-c",
+                        f"import flash_usb as u; u.send_reset('{serial}')"
+                    ]
+                    subprocess.run(cmd, capture_output=True, timeout=10)
+                    self.send_json({"success": True})
+                except Exception as e:
+                    self.send_json({"success": False, "error": str(e)})
+
         else:
             self.send_json({"error": "not found"}, 404)
 

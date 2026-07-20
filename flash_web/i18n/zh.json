@@ -36,6 +36,8 @@
   "btn_detect_dfu": "检测 DFU",
   "btn_start_flash": "开始刷写",
   "btn_cancel": "取消",
+  "btn_enter_bl": "进入BL",
+  "btn_exit_bl": "退出BL",
   "btn_clear": "清屏",
   "console_title": "刷写控制台",
   "progress_status": "状态: ",

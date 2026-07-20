@@ -233,6 +233,8 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <h3 style="margin:0" data-i18n="console_title">Flash Console</h3>
           <div class="btn-group" style="margin:0">
+            <button class="btn btn-secondary btn-sm" onclick="enterBootloader()" data-i18n="btn_enter_bl">Enter BL</button>
+            <button class="btn btn-secondary btn-sm" onclick="exitBootloader()" data-i18n="btn_exit_bl">Exit BL</button>
             <button class="btn btn-primary" id="btn-flash" onclick="startFlash()" data-i18n="btn_start_flash">Start Flash</button>
             <button class="btn btn-danger btn-sm" id="btn-cancel" onclick="cancelFlash()" disabled data-i18n="btn_cancel">Cancel</button>
             <button class="btn btn-secondary btn-sm" onclick="clearConsole()" data-i18n="btn_clear">Clear</button>
@@ -562,6 +564,44 @@ async function queryUSB() {
       d.devices.forEach(dev => logConsole("info", "  " + dev));
     } else {
       logConsole("warn", t("log_usb_none"));
+    }
+  } catch(e) { logConsole("error", t("log_query_fail", { msg: e.message })); }
+}
+
+async function enterBootloader() {
+  const serial = document.getElementById("serial-device").value.trim();
+  if (!serial) { logConsole("error", t("err_enter_serial")); return; }
+  logConsole("info", "Entering BL: " + serial);
+  try {
+    const r = await fetch("/api/devices/usb/enter-bl", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({serial_device: serial})
+    });
+    const d = await r.json();
+    if (d.success) {
+      logConsole("success", "Bootloader entered. Run Detect BL to find it.");
+    } else {
+      logConsole("error", "Enter BL failed: " + (d.error || "unknown"));
+    }
+  } catch(e) { logConsole("error", t("log_query_fail", { msg: e.message })); }
+}
+
+async function exitBootloader() {
+  const serial = document.getElementById("serial-device").value.trim();
+  if (!serial) { logConsole("error", t("err_enter_serial")); return; }
+  logConsole("info", "Exiting BL: " + serial);
+  try {
+    const r = await fetch("/api/devices/usb/exit-bl", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({serial_device: serial})
+    });
+    const d = await r.json();
+    if (d.success) {
+      logConsole("success", "Device reset signal sent.");
+    } else {
+      logConsole("error", "Exit BL failed: " + (d.error || "unknown"));
     }
   } catch(e) { logConsole("error", t("log_query_fail", { msg: e.message })); }
 }

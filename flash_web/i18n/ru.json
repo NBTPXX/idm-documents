@@ -36,6 +36,8 @@
   "btn_detect_dfu": "Найти DFU",
   "btn_start_flash": "Записать",
   "btn_cancel": "Отмена",
+  "btn_enter_bl": "Вход в BL",
+  "btn_exit_bl": "Выход из BL",
   "btn_clear": "Очистить",
   "console_title": "Консоль",
   "progress_status": "Статус: ",

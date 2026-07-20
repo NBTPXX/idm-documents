@@ -36,6 +36,8 @@
   "btn_detect_dfu": "Detect DFU",
   "btn_start_flash": "Start Flash",
   "btn_cancel": "Cancel",
+  "btn_enter_bl": "Enter BL",
+  "btn_exit_bl": "Exit BL",
   "btn_clear": "Clear",
   "console_title": "Flash Console",
   "progress_status": "Status: ",
