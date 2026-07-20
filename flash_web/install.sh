@@ -87,7 +87,9 @@ EOF
         print_ok "Moonraker update_manager configured"
     fi
 
-    ASVC_FILE="$(dirname "${MOONRAKER_CONF}")/moonraker.asvc"
+    ASVC_BASE="$(dirname "${MOONRAKER_CONF}")"
+    ASVC_BASE="${ASVC_BASE%/config}"
+    ASVC_FILE="${ASVC_BASE}/moonraker.asvc"
     if grep -q "^${SERVICE_NAME}$" "${ASVC_FILE}" 2>/dev/null; then
         print_info "${SERVICE_NAME} already in moonraker.asvc, skipping"
     else
