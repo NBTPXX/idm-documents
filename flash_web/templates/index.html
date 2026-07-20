@@ -416,9 +416,9 @@
             <div id="freq-group">
               <label data-i18n="frequency">Frequency</label>
               <select id="frequency" onchange="updateFirmwareList()">
-                <option value="1M">1M (High)</option>
-                <option value="500k">500k (Medium)</option>
-                <option value="250k">250k (Low)</option>
+                <option value="1000000">1000000 (High)</option>
+                <option value="500000">500000 (Medium)</option>
+                <option value="250000">250000 (Low)</option>
                 <option value="other" data-i18n="freq_other">Other</option>
               </select>
             </div>
@@ -913,11 +913,11 @@
 
       function freqMatches(name, freq) {
         const n = name.toLowerCase();
-        if (freq === "1M") return n.includes("1m");
-        if (freq === "500k") return n.includes("500k");
-        if (freq === "250k") return n.includes("250k");
+        if (freq === "1000000") return n.includes("1000000");
+        if (freq === "500000") return n.includes("500000");
+        if (freq === "250000") return n.includes("250000");
         if (freq === "other")
-          return !n.includes("1m") && !n.includes("250k") && !n.includes("500k");
+          return !n.includes("1000000") && !n.includes("250000") && !n.includes("500000");
         return true;
       }
 
