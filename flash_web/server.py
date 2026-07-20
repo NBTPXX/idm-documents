@@ -11,6 +11,7 @@ import re
 import socket
 import struct
 import subprocess
+import sys
 import threading
 import time
 import uuid
@@ -29,9 +30,12 @@ FW_DIR_IDM = FW_BASE / "IDM固件(Main firmware)"
 FW_DIR_CANBOOT = FW_BASE / "Canboot通讯频率覆写用固件(canboot deployer firmware)"
 FW_DIR_RP2040 = FW_BASE / "rp2040"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+LIB_DIR = Path(__file__).resolve().parent / "lib"
+FLASH_TOOL_PATH = str(LIB_DIR / "flashtool.py")
+FLASH_CAN_PATH = str(LIB_DIR / "flash_can.py")
 
-KLIPPER_ENV = os.path.expanduser("~/klippy-env/bin/python")
-KLIPPER_DIR = os.path.expanduser("~/klipper")
+KLIPPER_ENV = os.environ.get("KLIPPER_ENV", os.path.expanduser("~/klippy-env/bin/python"))
+KLIPPER_DIR = os.environ.get("KLIPPER_DIR", os.path.expanduser("~/klipper"))
 
 HOST = "0.0.0.0"
 PORT = 8888
@@ -78,15 +82,22 @@ def detect_environment():
         "fw_base": str(FW_BASE.resolve()),
     }
 
-    katapult_path = os.path.join(KLIPPER_DIR, "lib/katapult/flashtool.py")
-    canboot_path = os.path.join(KLIPPER_DIR, "lib/canboot/flash_can.py")
-
-    if os.path.exists(katapult_path):
+    # 优先使用本地 lib 中的工具，回退到 klipper 路径
+    if os.path.exists(FLASH_TOOL_PATH):
         info["bootloader"] = "katapult"
-        info["flash_tool"] = katapult_path
-    elif os.path.exists(canboot_path):
+        info["flash_tool"] = FLASH_TOOL_PATH
+    elif os.path.exists(FLASH_CAN_PATH):
         info["bootloader"] = "canboot"
-        info["flash_tool"] = canboot_path
+        info["flash_tool"] = FLASH_CAN_PATH
+    else:
+        katapult_path = os.path.join(KLIPPER_DIR, "lib/katapult/flashtool.py")
+        canboot_path = os.path.join(KLIPPER_DIR, "lib/canboot/flash_can.py")
+        if os.path.exists(katapult_path):
+            info["bootloader"] = "katapult"
+            info["flash_tool"] = katapult_path
+        elif os.path.exists(canboot_path):
+            info["bootloader"] = "canboot"
+            info["flash_tool"] = canboot_path
 
     try:
         result = subprocess.run(
@@ -122,21 +133,19 @@ def query_can_devices():
         return {"devices": [], "error": "_backend.err_no_tool"}
 
     can_if = env["can_interface"] or "can0"
+    is_local = str(LIB_DIR) in str(env["flash_tool"])
+    python_exe = sys.executable if is_local else KLIPPER_ENV
 
     try:
         if env["bootloader"] == "katapult":
             result = subprocess.run(
-                [KLIPPER_ENV, env["flash_tool"], "-i", can_if, "-q"],
-                capture_output=True,
-                text=True,
-                timeout=30,
+                [python_exe, env["flash_tool"], "-i", can_if, "-q"],
+                capture_output=True, text=True, timeout=30,
             )
         else:
             result = subprocess.run(
-                [KLIPPER_ENV, env["flash_tool"], "-q"],
-                capture_output=True,
-                text=True,
-                timeout=30,
+                [python_exe, env["flash_tool"], "-q"],
+                capture_output=True, text=True, timeout=30,
             )
 
         output = result.stdout + result.stderr
@@ -459,6 +468,8 @@ def run_flash(task):
 
     env = detect_environment()
     flash_tool = env.get("flash_tool", "")
+    is_local_tool = str(LIB_DIR) in str(flash_tool)
+    python_exe = sys.executable if is_local_tool else KLIPPER_ENV
 
     if not flash_tool and mode != "DFU":
         task.status = "failed"
@@ -473,18 +484,9 @@ def run_flash(task):
                 return
 
             if bootloader == "katapult":
-                cmd = [
-                    KLIPPER_ENV,
-                    flash_tool,
-                    "-i",
-                    can_interface,
-                    "-f",
-                    fw_file,
-                    "-u",
-                    can_uuid,
-                ]
+                cmd = [python_exe, flash_tool, "-i", can_interface, "-f", fw_file, "-u", can_uuid]
             else:
-                cmd = [KLIPPER_ENV, flash_tool, "-f", fw_file, "-u", can_uuid]
+                cmd = [python_exe, flash_tool, "-f", fw_file, "-u", can_uuid]
 
         elif mode == "USB":
             if not serial_device:
@@ -496,9 +498,9 @@ def run_flash(task):
             bootloader_serial = detect_bootloader_serial(serial_device, try_enter=True)
 
             if bootloader == "katapult":
-                cmd = [KLIPPER_ENV, flash_tool, "-d", bootloader_serial, "-f", fw_file]
+                cmd = [python_exe, flash_tool, "-d", bootloader_serial, "-f", fw_file]
             else:
-                cmd = [KLIPPER_ENV, flash_tool, "-f", fw_file, "-d", bootloader_serial]
+                cmd = [python_exe, flash_tool, "-f", fw_file, "-d", bootloader_serial]
 
         elif mode == "DFU":
             dfu_args = [
