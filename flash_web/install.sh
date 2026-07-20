@@ -61,6 +61,11 @@ if [[ -z "${MOONRAKER_CONF}" ]]; then
 else
     if grep -q "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" 2>/dev/null; then
         print_info "[update_manager ${UPDATE_NAME}] already exists, skipping"
+        if ! grep -A10 "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" \
+             | grep -q "managed_services:"; then
+            print_info "Adding managed_services: ${UPDATE_NAME} ..."
+            sed -i "/^is_system_service:/a managed_services: ${UPDATE_NAME}" "${MOONRAKER_CONF}"
+        fi
     else
         print_info "Adding [update_manager ${UPDATE_NAME}] to ${MOONRAKER_CONF} ..."
 
@@ -74,24 +79,12 @@ channel: dev
 path: ${REPO_DIR}
 origin: ${REPO_REMOTE}
 is_system_service: False
+managed_services: ${UPDATE_NAME}
 info_tags:
     desc=IDM Flash Web Tool
 EOF
 
         print_ok "Moonraker update_manager configured"
-    fi
-
-    if grep -q "managed_services:" "${MOONRAKER_CONF}" 2>/dev/null && \
-       grep -A10 "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" | grep -q "${SERVICE_NAME}"; then
-        print_info "[update_manager] already has managed_services: ${SERVICE_NAME}, skipping"
-    else
-        print_info "Adding managed_services: ${SERVICE_NAME} to Moonraker config ..."
-        if grep -q "managed_services:" "${MOONRAKER_CONF}" 2>/dev/null; then
-            sed -i "/\[update_manager ${UPDATE_NAME}\]/,/^\[/s/managed_services:.*/& ${SERVICE_NAME}/" "${MOONRAKER_CONF}"
-        else
-            sed -i "/\[update_manager ${UPDATE_NAME}\]/a managed_services: ${SERVICE_NAME}" "${MOONRAKER_CONF}"
-        fi
-        print_ok "managed_services added"
     fi
 
     print_info "Restart Moonraker to apply: sudo systemctl restart moonraker"
