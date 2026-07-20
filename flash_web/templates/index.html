@@ -1182,12 +1182,13 @@
           params.serial_device = document
             .getElementById("serial-device")
             .value.trim();
-          if (!params.serial_device) {
+          const bs = document.getElementById("boot-serial").value.trim();
+          if (bs) {
+            params.bootloader_serial = bs;
+          } else if (!params.serial_device) {
             logConsole("error", t("err_enter_serial"));
             return;
           }
-          const bs = document.getElementById("boot-serial").value.trim();
-          if (bs) params.bootloader_serial = bs;
         } else if (mode === "DFU") {
           params.dfu_addr = document.getElementById("dfu-addr").value;
         }

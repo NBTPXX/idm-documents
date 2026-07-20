@@ -489,15 +489,14 @@ def run_flash(task):
                 cmd = [python_exe, flash_tool, "-f", fw_file, "-u", can_uuid]
 
         elif mode == "USB":
-            if not serial_device:
-                task.status = "failed"
-                log(_t(lang, "err_no_serial"))
-                return
-
             bootloader_serial = params.get("bootloader_serial", "")
             if bootloader_serial and os.path.exists(bootloader_serial):
                 log(_t(lang, "bl_already", device=bootloader_serial))
             else:
+                if not serial_device:
+                    task.status = "failed"
+                    log(_t(lang, "err_no_serial"))
+                    return
                 log(_t(lang, "enter_bl", device=serial_device))
                 bootloader_serial = detect_bootloader_serial(serial_device, try_enter=True)
 
