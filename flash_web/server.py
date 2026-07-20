@@ -72,6 +72,7 @@ def detect_environment():
         "can_interface": None,
         "klipper_env": os.path.exists(KLIPPER_ENV),
         "has_dfutil": os.path.exists("/usr/bin/dfu-util"),
+        "fw_base": str(FW_BASE.resolve()),
     }
 
     katapult_path = os.path.join(KLIPPER_DIR, "lib/katapult/flashtool.py")

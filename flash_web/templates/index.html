@@ -148,6 +148,7 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
       <div class="info-row"><span class="key">Bootloader</span><span class="val" id="env-bl">-</span></div>
       <div class="info-row"><span class="key">CAN</span><span class="val" id="env-can">-</span></div>
       <div class="info-row"><span class="key">dfu-util</span><span class="val" id="env-dfu">-</span></div>
+      <div class="info-row"><span class="key">Firmware Path</span><span class="val" id="env-fw">-</span></div>
     </div>
   </div>
 
@@ -344,6 +345,7 @@ function updateEnvDisplay() {
   document.getElementById("env-bl").textContent = env.bootloader || t("env_not_detected");
   document.getElementById("env-can").textContent = env.can_interface || t("env_not_detected");
   document.getElementById("env-dfu").textContent = env.has_dfutil ? t("env_detected") : t("env_not_detected");
+  document.getElementById("env-fw").textContent = env.fw_base || "-";
 }
 
 async function loadFirmwareList() {
