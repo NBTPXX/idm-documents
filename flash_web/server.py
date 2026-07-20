@@ -5,6 +5,7 @@ IDM 固件刷写 Web 服务
 """
 
 import json
+import glob
 import os
 import re
 import struct
@@ -103,6 +104,18 @@ def detect_environment():
 # ============================================================
 # 设备查询
 # ============================================================
+def _is_bl_device(path):
+    name = path.lower()
+    return "katapult" in name or "canboot" in name or "stm32" in name
+
+
+def _scan_serial_devices():
+    devices = set()
+    for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
+        devices.update(glob.glob(pattern))
+    return devices
+
+
 def query_can_devices():
     env = detect_environment()
     if not env["flash_tool"] or not env["bootloader"]:
@@ -130,11 +143,7 @@ def query_can_devices():
 
 
 def query_usb_devices():
-    devices = []
-    for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
-        import glob
-        devices.extend(glob.glob(pattern))
-    devices = sorted(set(devices))
+    devices = sorted(_scan_serial_devices())
     devices = [d for d in devices if "idm" in d.lower()]
     return {"devices": devices}
 
@@ -142,22 +151,16 @@ def query_usb_devices():
 def detect_bootloader_serial(serial_device, try_enter=True):
     """Detect bootloader serial. try_enter=True enters bootloader first.
     try_enter=False only scans existing devices without entering BL."""
-    is_bl = "katapult" in serial_device.lower() or "canboot" in serial_device.lower() or "stm32" in serial_device.lower()
-    if is_bl and os.path.exists(serial_device):
+    if _is_bl_device(serial_device) and os.path.exists(serial_device):
         return serial_device
 
     if not try_enter:
-        for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
-            import glob
-            for d in glob.glob(pattern):
-                if "katapult" in d.lower() or "canboot" in d.lower() or "stm32" in d.lower():
-                    return d
+        for d in sorted(_scan_serial_devices()):
+            if _is_bl_device(d):
+                return d
         return ""
 
-    before = set()
-    for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
-        import glob
-        before.update(glob.glob(pattern))
+    before = _scan_serial_devices()
 
     enter_cmd = [
         KLIPPER_ENV, "-c",
@@ -165,21 +168,15 @@ def detect_bootloader_serial(serial_device, try_enter=True):
     ]
     try:
         klipper_scripts = os.path.join(KLIPPER_DIR, "scripts")
-        cwd = klipper_scripts if os.path.isdir(klipper_scripts) else None
-        subprocess.run(enter_cmd, cwd=cwd,
+        subprocess.run(enter_cmd, cwd=klipper_scripts,
                        capture_output=True, timeout=15)
         time.sleep(3)
     except Exception:
         pass
 
-    after = set()
-    for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
-        import glob
-        after.update(glob.glob(pattern))
-
-    new_devices = after - before
+    new_devices = _scan_serial_devices() - before
     for d in sorted(new_devices):
-        if "katapult" in d.lower() or "canboot" in d.lower() or "stm32" in d.lower():
+        if _is_bl_device(d):
             return d
 
     for d in sorted(new_devices):
@@ -188,7 +185,7 @@ def detect_bootloader_serial(serial_device, try_enter=True):
     candidate = serial_device
     if os.path.exists(serial_device):
         return candidate
-    for d in after:
+    for d in sorted(_scan_serial_devices() - before):
         if d != serial_device:
             return d
     return candidate
@@ -317,6 +314,41 @@ def _t(lang, key, **kwargs):
 
 
 # ============================================================
+# Katapult 协议
+# ============================================================
+KATAPULT_HEADER = b'\x01\x88'
+KATAPULT_TRAILER = b'\x99\x03'
+
+
+def crc16_ccitt(buf):
+    crc = 0xffff
+    for b in buf:
+        b ^= crc & 0xff
+        b ^= (b & 0x0f) << 4
+        crc = ((b << 8) | (crc >> 8)) ^ (b >> 4) ^ (b << 3)
+    return crc & 0xFFFF
+
+
+def build_katapult_cmd(cmd, payload=b''):
+    wcnt = (len(payload) // 4) & 0xFF
+    out = bytearray(KATAPULT_HEADER)
+    out.append(cmd); out.append(wcnt)
+    out.extend(payload)
+    crc_val = crc16_ccitt(out[2:])
+    out.extend(struct.pack("<H", crc_val))
+    out.extend(KATAPULT_TRAILER)
+    return bytes(out)
+
+
+def _read_json_body(handler):
+    content_length = int(handler.headers.get("Content-Length", 0))
+    if content_length == 0:
+        raise ValueError("empty body")
+    body = handler.rfile.read(content_length)
+    return json.loads(body)
+
+
+# ============================================================
 # 刷写执行
 # ============================================================
 def run_flash(task):
@@ -386,51 +418,36 @@ def run_flash(task):
 
         log(_t(lang, "exec_cmd", cmd=" ".join(cmd)))
 
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-        )
-        task.process = process
-
-        for line in iter(process.stdout.readline, ""):
-            line = line.rstrip()
-            if line:
-                task.append_output(line)
-
-        process.wait()
-
-        if mode == "DFU" and process.returncode != 0 and cmd[0] != "sudo":
-            log(_t(lang, "retry_sudo", cmd=" ".join(sudo_cmd)))
-            process = subprocess.Popen(
-                sudo_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
+        def _run(c):
+            process = subprocess.Popen(c, stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT, text=True, bufsize=1)
             task.process = process
             for line in iter(process.stdout.readline, ""):
                 line = line.rstrip()
                 if line:
                     task.append_output(line)
             process.wait()
+            return process.returncode
 
-        if process.returncode == 0:
+        rc = _run(cmd)
+
+        if mode == "DFU" and rc != 0:
+            log(_t(lang, "retry_sudo", cmd=" ".join(sudo_cmd)))
+            rc = _run(sudo_cmd)
+
+        if rc == 0:
             task.status = "completed"
             log(_t(lang, "flash_done"))
         else:
             task.status = "failed"
-            log(_t(lang, "flash_fail", code=str(process.returncode)))
+            log(_t(lang, "flash_fail", code=str(rc)))
 
     except subprocess.TimeoutExpired:
         task.status = "failed"
         log(_t(lang, "err_timeout"))
     except Exception as e:
         task.status = "failed"
-        log(f"{_t(lang, 'err_timeout')}: {str(e)}")
+        log(f"Error: {str(e)}")
 
 
 # ============================================================
@@ -513,7 +530,7 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
             self.send_json(query_dfu_devices())
 
         elif path == "/api/firmware/list":
-            qs = parse_qs(urlparse(self.path).query)
+            qs = parse_qs(parsed.query)
             fw_base = qs.get("fw_base", [None])[0]
             self.send_json(list_firmware(fw_base))
 
@@ -559,6 +576,12 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
 
+        try:
+            body_data = _read_json_body(self) if path != "/api/flash" else {}
+        except (ValueError, json.JSONDecodeError):
+            self.send_json({"error": "invalid JSON body"}, 400)
+            return
+
         if path == "/api/flash":
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length)
@@ -576,10 +599,7 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
             self.send_json({"task_id": task_id})
 
         elif path == "/api/flash/cancel":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length)
-            data = json.loads(body)
-            task_id = data.get("task_id")
+            task_id = body_data.get("task_id")
 
             with tasks_lock:
                 task = tasks.get(task_id)
@@ -593,10 +613,7 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "task not running"}, 404)
 
         elif path == "/api/devices/usb/enter-bl":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length)
-            data = json.loads(body)
-            serial = data.get("serial_device", "")
+            serial = body_data.get("serial_device", "")
             if not serial:
                 self.send_json({"success": False, "error": "missing serial_device"}, 400)
                 return
@@ -614,67 +631,36 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                 self.send_json({"success": False, "error": str(e)})
 
         elif path == "/api/devices/usb/exit-bl":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length)
-            data = json.loads(body)
-            serial = data.get("serial_device", "")
+            serial = body_data.get("serial_device", "")
             if not serial:
                 self.send_json({"success": False, "error": "missing serial_device"}, 400)
                 return
             try:
-                import sys
                 import serial as pyserial
-                sys.stderr.write(f"exit-bl: opening {serial}\n")
-                CMD_HEADER = b'\x01\x88'
-                CMD_TRAILER = b'\x99\x03'
-
-                def crc16_ccitt(buf):
-                    crc = 0xffff
-                    for b in buf:
-                        b ^= crc & 0xff
-                        b ^= (b & 0x0f) << 4
-                        crc = ((b << 8) | (crc >> 8)) ^ (b >> 4) ^ (b << 3)
-                    return crc & 0xFFFF
-
-                def build_cmd(cmd, payload=b''):
-                    wcnt = (len(payload) // 4) & 0xFF
-                    out = bytearray(CMD_HEADER)
-                    out.append(cmd); out.append(wcnt)
-                    out.extend(payload)
-                    crc_val = crc16_ccitt(out[2:])
-                    out.extend(struct.pack("<H", crc_val))
-                    out.extend(CMD_TRAILER)
-                    return bytes(out)
 
                 s = pyserial.Serial(baudrate=250000, timeout=0, exclusive=True)
                 s.port = serial; s.open()
-                sys.stderr.write(f"exit-bl: serial opened, sending prime\n")
                 s.reset_input_buffer()
-                s.write(build_cmd(0x90)); s.flush()
+                s.write(build_katapult_cmd(0x90)); s.flush()
                 time.sleep(0.3)
                 s.reset_input_buffer()
-                sys.stderr.write(f"exit-bl: sending CONNECT\n")
-                s.write(build_cmd(0x11)); s.flush()
+                s.write(build_katapult_cmd(0x11)); s.flush()
                 raw = b''
                 deadline = time.time() + 3
                 while time.time() < deadline:
                     chunk = s.read(4096)
                     if chunk:
                         raw += chunk
-                        if CMD_TRAILER in raw and raw.find(CMD_HEADER) >= 0:
+                        if KATAPULT_TRAILER in raw and raw.find(KATAPULT_HEADER) >= 0:
                             break
                     time.sleep(0.05)
-                sys.stderr.write(f"exit-bl: CONNECT resp {len(raw)}B\n")
-                sys.stderr.write(f"exit-bl: sending COMPLETE\n")
-                s.write(build_cmd(0x15)); s.flush()
+                s.write(build_katapult_cmd(0x15)); s.flush()
                 time.sleep(0.3)
                 try: s.close()
                 except Exception: pass
-                sys.stderr.write(f"exit-bl: done\n")
                 time.sleep(1)
                 self.send_json({"success": True})
             except Exception as e:
-                sys.stderr.write(f"exit-bl ERROR: {e}\n")
                 self.send_json({"success": False, "error": str(e)})
 
         else:
