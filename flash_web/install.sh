@@ -63,8 +63,8 @@ else
         print_info "[update_manager ${UPDATE_NAME}] already exists, skipping"
         if ! grep -A10 "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" \
              | grep -q "managed_services:"; then
-            print_info "Adding managed_services: ${SERVICE_NAME} ..."
-            sed -i "/^is_system_service:/a managed_services: ${SERVICE_NAME}" "${MOONRAKER_CONF}"
+            print_info "Adding managed_services: ${UPDATE_NAME} ..."
+            sed -i "/^is_system_service:/a managed_services: ${UPDATE_NAME}" "${MOONRAKER_CONF}"
         fi
     else
         print_info "Adding [update_manager ${UPDATE_NAME}] to ${MOONRAKER_CONF} ..."
@@ -79,7 +79,7 @@ channel: dev
 path: ${REPO_DIR}
 origin: ${REPO_REMOTE}
 is_system_service: False
-managed_services: ${SERVICE_NAME}
+managed_services: ${UPDATE_NAME}
 info_tags:
     desc=IDM Flash Web Tool
 EOF
