@@ -494,8 +494,12 @@ def run_flash(task):
                 log(_t(lang, "err_no_serial"))
                 return
 
-            log(_t(lang, "enter_bl", device=serial_device))
-            bootloader_serial = detect_bootloader_serial(serial_device, try_enter=True)
+            bootloader_serial = params.get("bootloader_serial", "")
+            if bootloader_serial and os.path.exists(bootloader_serial):
+                log(_t(lang, "bl_already", device=bootloader_serial))
+            else:
+                log(_t(lang, "enter_bl", device=serial_device))
+                bootloader_serial = detect_bootloader_serial(serial_device, try_enter=True)
 
             if bootloader == "katapult":
                 cmd = [python_exe, flash_tool, "-d", bootloader_serial, "-f", fw_file]
