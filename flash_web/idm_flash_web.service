@@ -1,0 +1,18 @@
+[Unit]
+Description=IDM Firmware Flash Web Service
+After=network.target network-online.target moonraker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=__FLASH_WEB_DIR__/start_systemd.sh
+WorkingDirectory=__FLASH_WEB_DIR__
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+Environment=MOONRAKER_URL=http://localhost:7125
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IDM Flash Tool</title>
+    <style>
+      :root {
+        --bg: #16191e;
+        --bg-card: #1e2127;
+        --bg-input: #292c33;
+        --border: #3a3d44;
+        --text: #d1d5db;
+        --text-muted: #9ca3af;
+        --accent: #10b981;
+        --accent-hover: #059669;
+        --danger: #ef4444;
+        --warn: #f59e0b;
+        --info: #3b82f6;
+        --radius: 8px;
+      }
+      body.theme-light {
+        --bg: #f8f9fa;
+        --bg-card: #ffffff;
+        --bg-input: #f1f3f5;
+        --border: #dee2e6;
+        --text: #212529;
+        --text-muted: #6c757d;
+        --accent: #059669;
+        --accent-hover: #047857;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        line-height: 1.5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .status-bar {
+        display: flex;
+        gap: 16px;
+        font-size: 0.8rem;
+      }
+      .status-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+      }
+      .status-dot.ok {
+        background: var(--accent);
+      }
+      .status-dot.err {
+        background: var(--danger);
+      }
+      .status-dot.warn {
+        background: var(--warn);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+      }
+      .card h3 {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+      label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+        margin-top: 8px;
+      }
+      select,
+      input[type="text"] {
+        width: 100%;
+        padding: 8px 10px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-size: 0.9rem;
+        outline: none;
+      }
+      select:focus,
+      input[type="text"]:focus {
+        border-color: var(--accent);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background 0.15s;
+        font-weight: 500;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .btn-secondary {
+        background: var(--bg-input);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      .btn-secondary:hover {
+        background: var(--border);
+      }
+      .btn-danger {
+        background: var(--danger);
+        color: #fff;
+      }
+      .btn-danger:hover {
+        opacity: 0.85;
+      }
+      .btn-sm {
+        padding: 4px 10px;
+        font-size: 0.75rem;
+      }
+      .btn-group {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .lang-select {
+        background: var(--bg-input);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 500;
+        outline: none;
+        width: auto;
+      }
+      .lang-select:focus {
+        border-color: var(--accent);
+      }
+
+      .console {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px;
+        height: 400px;
+        overflow-y: auto;
+        font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+        font-size: 0.78rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      .console .ts {
+        color: #6b7280;
+      }
+      .console .info {
+        color: #60a5fa;
+      }
+      .console .error {
+        color: #f87171;
+      }
+      .console .success {
+        color: #34d399;
+      }
+      .console .warn {
+        color: #fbbf24;
+      }
+      .progress-bar {
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin-top: 8px;
+        overflow: hidden;
+      }
+      .progress-bar .fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 2px;
+        transition: width 0.3s;
+      }
+      .fw-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-top: 4px;
+      }
+      .fw-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.8rem;
+        transition: background 0.1s;
+      }
+      .fw-item:hover {
+        background: var(--bg-input);
+      }
+      .fw-item.selected {
+        background: rgba(16, 185, 129, 0.1);
+        border-left: 3px solid var(--accent);
+      }
+      .fw-item:last-child {
+        border-bottom: none;
+      }
+      .version-tag {
+        display: inline-block;
+        font-size: 0.65rem;
+        padding: 1px 6px;
+        border-radius: 3px;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+      .version-tag.latest {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+      .version-tag.old {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 0.8rem;
+      }
+      .info-row .key {
+        color: var(--text-muted);
+      }
+      .info-row .val {
+        font-weight: 500;
+      }
+      .tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 12px;
+      }
+      .tab {
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+      }
+      .tab:hover {
+        color: var(--text);
+      }
+      .tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+      .moonraker-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      @media (max-width: 768px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1 data-i18n="app_title">IDM Flash Tool</h1>
+        <div class="header-right">
+          <div class="status-bar">
+            <span class="moonraker-row" id="mr-status">
+              <span class="status-dot warn" id="mr-dot"></span>
+              <span id="mr-text" data-i18n="mr_checking">Checking...</span>
+            </span>
+          </div>
+          <select
+            id="lang-select"
+            onchange="setLang(this.value)"
+            class="lang-select"
+          >
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+            <option value="ru">Русский</option>
+            <option value="ja">日本語</option>
+          </select>
+          <button
+            id="theme-toggle"
+            onclick="toggleTheme()"
+            class="lang-select"
+            title="Toggle light/dark theme"
+          >
+            ☀
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 16px">
+        <h3 data-i18n="env_title">Environment</h3>
+        <div class="grid-3" id="env-info">
+          <div class="info-row">
+            <span class="key">Bootloader</span
+            ><span class="val" id="env-bl">-</span>
+          </div>
+          <div class="info-row">
+            <span class="key">CAN</span><span class="val" id="env-can">-</span>
+          </div>
+          <div class="info-row">
+            <span class="key">dfu-util</span
+            ><span class="val" id="env-dfu">-</span>
+          </div>
+          <div class="info-row">
+            <span class="key">Firmware Path</span
+            ><span class="val"
+              ><input
+                type="text"
+                id="env-fw"
+                placeholder="Loading..."
+                style="
+                  width: 100%;
+                  box-sizing: border-box;
+                  background: var(--bg-card);
+                  border: 1px solid var(--border);
+                  color: var(--text);
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  font-size: 13px;
+                "
+                onchange="refreshFirmwareList()"
+            /></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div class="card" style="margin-bottom: 16px">
+            <div class="tabs" id="mode-tabs">
+              <div class="tab active" data-mode="CAN" data-i18n="mode_can">
+                CAN Mode
+              </div>
+              <div class="tab" data-mode="USB" data-i18n="mode_usb">
+                USB Mode
+              </div>
+              <div class="tab" data-mode="DFU" data-i18n="mode_dfu">
+                DFU Mode
+              </div>
+            </div>
+
+            <input type="hidden" id="flash-mode" value="CAN" />
+            <input type="hidden" id="hw-platform" value="stm32" />
+
+            <div id="freq-group">
+              <label data-i18n="frequency">Frequency</label>
+              <select id="frequency" onchange="updateFirmwareList()">
+                <option value="1000000">1000000 (High)</option>
+                <option value="500000">500000 (Medium)</option>
+                <option value="250000">250000 (Low)</option>
+                <option value="other" data-i18n="freq_other">Other</option>
+              </select>
+            </div>
+
+            <label data-i18n="fw_category">Firmware Type</label>
+            <select id="fw-category" onchange="updateFirmwareList()">
+              <option value="main" data-i18n="fw_main">
+                IDM Main Firmware
+              </option>
+              <option value="deployer" data-i18n="fw_deployer">
+                Bootloader Deployer
+              </option>
+            </select>
+
+            <label data-i18n="fw_version">Firmware Version</label>
+            <select id="fw-version" onchange="updateFirmwareList()"></select>
+
+            <label data-i18n="fw_select">Select Firmware</label>
+            <div class="fw-list" id="fw-list"></div>
+            <span
+              style="font-size: 0.7rem; color: var(--text-muted)"
+              id="fw-selected"
+              data-i18n="fw_none"
+              >None selected</span
+            >
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="device_title">Device</h3>
+            <div id="device-panel">
+              <div id="dev-can-panel">
+                <label>CAN UUID</label>
+                <div style="display: flex; gap: 8px">
+                  <input
+                    type="text"
+                    id="can-uuid"
+                    placeholder="Click query to scan"
+                  />
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    onclick="queryCAN()"
+                    data-i18n="btn_query"
+                  >
+                    Query
+                  </button>
+                </div>
+              </div>
+              <div id="dev-usb-panel" style="display: none">
+                <label data-i18n="dev_serial">Serial Port</label>
+                <input
+                  type="text"
+                  id="serial-device"
+                  placeholder="/dev/serial/by-id/..."
+                />
+                <button
+                  class="btn btn-secondary btn-sm"
+                  onclick="queryUSB()"
+                  data-i18n="btn_query_serial"
+                  style="margin-bottom: 8px"
+                >
+                  Query Serial
+                </button>
+                <label data-i18n="dev_boot_serial"
+                  >Bootloader Serial (after entering BL)</label
+                >
+                <input
+                  type="text"
+                  id="boot-serial"
+                  placeholder="Auto-detected after entering Bootloader"
+                />
+                <button
+                  class="btn btn-secondary btn-sm"
+                  onclick="detectBootloader()"
+                  data-i18n="dev_boot_detect"
+                >
+                  Detect BL
+                </button>
+              </div>
+              <div id="dev-dfu-panel" style="display: none">
+                <label data-i18n="dev_dfu_addr">Flash Address</label>
+                <select id="dfu-addr">
+                  <option value="0x8002000" data-i18n="dfu_main">
+                    0x08002000 (Main Firmware)
+                  </option>
+                  <option value="0x8000000" data-i18n="dfu_bl">
+                    0x08000000 (Bootloader)
+                  </option>
+                </select>
+                <button
+                  class="btn btn-secondary btn-sm"
+                  style="margin-top: 8px"
+                  onclick="queryDFU()"
+                  data-i18n="btn_detect_dfu"
+                >
+                  Detect DFU
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" style="margin-bottom: 16px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 4px;
+              "
+            >
+              <h3 style="margin: 0" data-i18n="console_title">Flash Console</h3>
+              <div class="btn-group" style="margin: 0">
+                <button
+                  class="btn btn-secondary btn-sm"
+                  id="btn-enter-bl"
+                  onclick="enterBootloader()"
+                  data-i18n="btn_enter_bl"
+                >
+                  Enter BL
+                </button>
+                <button
+                  class="btn btn-secondary btn-sm"
+                  id="btn-exit-bl"
+                  onclick="exitBootloader()"
+                  data-i18n="btn_exit_bl"
+                >
+                  Exit BL
+                </button>
+                <button
+                  class="btn btn-primary"
+                  id="btn-flash"
+                  onclick="startFlash()"
+                  data-i18n="btn_start_flash"
+                >
+                  Start Flash
+                </button>
+                <button
+                  class="btn btn-danger btn-sm"
+                  id="btn-cancel"
+                  onclick="cancelFlash()"
+                  disabled
+                  data-i18n="btn_cancel"
+                >
+                  Cancel
+                </button>
+                <button
+                  class="btn btn-secondary btn-sm"
+                  onclick="clearConsole()"
+                  data-i18n="btn_clear"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div id="progress" style="display: none">
+              <div class="progress-bar">
+                <div class="fill" style="width: 0%"></div>
+              </div>
+              <span
+                style="font-size: 0.7rem; color: var(--text-muted)"
+                id="progress-text"
+              ></span>
+            </div>
+          </div>
+          <div class="console" id="console"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ============================================================
+      // i18n - 从 i18n/ 目录加载语言文件
+      // ============================================================
+      const I18N = {};
+      const LANGS = ["en", "zh", "ru", "ja"];
+      let currentLang =
+        localStorage.getItem("idm_lang") ||
+        ((navigator.language || "en").startsWith("zh")
+          ? "zh"
+          : (navigator.language || "en").startsWith("ru")
+            ? "ru"
+            : (navigator.language || "en").startsWith("ja")
+              ? "ja"
+              : "en");
+
+      let currentTheme = localStorage.getItem("idm_theme") || "dark";
+
+      function applyTheme() {
+        document.body.classList.toggle("theme-light", currentTheme === "light");
+        document.getElementById("theme-toggle").textContent =
+          currentTheme === "light" ? "☾" : "☀";
+      }
+
+      function toggleTheme() {
+        currentTheme = currentTheme === "dark" ? "light" : "dark";
+        localStorage.setItem("idm_theme", currentTheme);
+        applyTheme();
+      }
+
+      applyTheme();
+
+      async function loadI18N() {
+        for (const lang of LANGS) {
+          try {
+            const r = await fetch(`/i18n/${lang}.json`);
+            I18N[lang] = await r.json();
+          } catch (e) {
+            console.warn(`Failed to load i18n/${lang}.json`);
+          }
+        }
+        if (!I18N[currentLang]) currentLang = "en";
+      }
+
+      function t(key, replacements) {
+        let s =
+          (I18N[currentLang] && I18N[currentLang][key]) ||
+          (I18N["en"] && I18N["en"][key]) ||
+          key;
+        if (replacements) {
+          Object.keys(replacements).forEach((k) => {
+            s = s.replace("{" + k + "}", replacements[k]);
+          });
+        }
+        return s;
+      }
+
+      function setLang(lang) {
+        currentLang = lang;
+        localStorage.setItem("idm_lang", lang);
+        document.documentElement.lang = lang;
+        document.getElementById("lang-select").value = lang;
+        applyTranslations();
+        updateEnvDisplay();
+        updateMrDisplay();
+        updateFirmwareList();
+        updateModeTabs();
+        updateDevicePanels();
+      }
+
+      function applyTranslations() {
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.dataset.i18n;
+          if (el.tagName === "OPTION") {
+            el.textContent = t(key);
+          } else if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+            if (el.dataset.i18nPlaceholder !== undefined)
+              el.placeholder = t(key);
+          } else {
+            el.textContent = t(key);
+          }
+        });
+        updateSelectOptions("fw-category");
+        updateSelectOptions("dfu-addr");
+      }
+
+      function updateSelectOptions(id) {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        Array.from(sel.options).forEach((opt) => {
+          const key = opt.dataset.i18n;
+          if (key) opt.textContent = t(key);
+        });
+      }
+
+      // ============================================================
+      // 全局状态
+      // ============================================================
+      let env = {};
+      let fwData = {};
+      let currentTaskId = null;
+      let pollTimer = null;
+
+      // ============================================================
+      // 初始化
+      // ============================================================
+      async function init() {
+        await loadI18N();
+        document.getElementById("lang-select").value = currentLang;
+        applyTranslations();
+        updateModeTabs();
+        updateDevicePanels();
+        await loadEnv();
+        await loadFirmwareList();
+        updateFirmwareList();
+        checkMoonraker();
+        setInterval(checkMoonraker, 30000);
+      }
+
+      async function loadEnv() {
+        try {
+          const r = await fetch("/api/env");
+          env = await r.json();
+          updateEnvDisplay();
+        } catch (e) {
+          logConsole("error", t("log_cannot_connect"));
+        }
+      }
+
+      function updateEnvDisplay() {
+        document.getElementById("env-bl").textContent =
+          env.bootloader || t("env_not_detected");
+        document.getElementById("env-can").textContent =
+          env.can_interface || t("env_not_detected");
+        document.getElementById("env-dfu").textContent = env.has_dfutil
+          ? t("env_detected")
+          : t("env_not_detected");
+        const fwInput = document.getElementById("env-fw");
+        if (env.fw_base && !fwInput.dataset.init) {
+          fwInput.value = env.fw_base;
+          fwInput.dataset.init = "1";
+        }
+      }
+
+      async function loadFirmwareList() {
+        const fwBase = document.getElementById("env-fw").value.trim();
+        const qs = fwBase ? "?fw_base=" + encodeURIComponent(fwBase) : "";
+        try {
+          const r = await fetch("/api/firmware/list" + qs);
+          fwData = await r.json();
+        } catch (e) {
+          console.error("loadFirmwareList:", e);
+        }
+      }
+
+      async function refreshFirmwareList() {
+        await loadFirmwareList();
+        updateFirmwareList();
+      }
+
+      let mrConnected = false;
+
+      async function checkMoonraker() {
+        const dot = document.getElementById("mr-dot");
+        const txt = document.getElementById("mr-text");
+        try {
+          const r = await fetch("/api/moonraker/info");
+          const d = await r.json();
+          if (d.result) {
+            mrConnected = true;
+            dot.className = "status-dot ok";
+          } else {
+            mrConnected = false;
+            dot.className = "status-dot err";
+          }
+        } catch (e) {
+          mrConnected = false;
+          dot.className = "status-dot err";
+        }
+        updateMrDisplay();
+      }
+
+      function updateMrDisplay() {
+        const txt = document.getElementById("mr-text");
+        txt.textContent = mrConnected
+          ? t("mr_connected")
+          : t("mr_disconnected");
+      }
+
+      function updateModeTabs() {
+        document.querySelectorAll("#mode-tabs .tab").forEach((tab) => {
+          tab.textContent = t(tab.dataset.i18n);
+        });
+      }
+
+      function updateDevicePanels() {
+        const mode = document.getElementById("flash-mode").value;
+        document.getElementById("dev-can-panel").style.display =
+          mode === "CAN" ? "block" : "none";
+        document.getElementById("dev-usb-panel").style.display =
+          mode === "USB" ? "block" : "none";
+        document.getElementById("dev-dfu-panel").style.display =
+          mode === "DFU" ? "block" : "none";
+        document.getElementById("freq-group").style.display =
+          mode === "CAN" ? "block" : "none";
+        const blBtnsVisible = mode !== "DFU";
+        document.getElementById("btn-enter-bl").style.display = blBtnsVisible
+          ? ""
+          : "none";
+        document.getElementById("btn-exit-bl").style.display = blBtnsVisible
+          ? ""
+          : "none";
+      }
+
+      // ============================================================
+      // 模式切换
+      // ============================================================
+      document
+        .getElementById("mode-tabs")
+        .addEventListener("click", function (e) {
+          if (!e.target.classList.contains("tab")) return;
+          document
+            .querySelectorAll("#mode-tabs .tab")
+            .forEach((t) => t.classList.remove("active"));
+          e.target.classList.add("active");
+          document.getElementById("flash-mode").value = e.target.dataset.mode;
+          updateDevicePanels();
+          updateFirmwareList();
+        });
+
+      // ============================================================
+      // 固件列表 (支持版本选择)
+      // ============================================================
+      function updateFirmwareList() {
+        const hw = document.getElementById("hw-platform").value;
+        const mode = document.getElementById("flash-mode").value;
+        const freq =
+          mode === "CAN" ? document.getElementById("frequency").value : "";
+        const cat = document.getElementById("fw-category").value;
+        const container = document.getElementById("fw-list");
+        const selSpan = document.getElementById("fw-selected");
+        const verSelect = document.getElementById("fw-version");
+
+        if (!fwData[hw] || !fwData[hw][cat] || !fwData[hw][cat].length) {
+          container.innerHTML = `<div class="fw-item" style="color:var(--text-muted)">${t("fw_no_available")}</div>`;
+          verSelect.innerHTML = `<option value="">${t("fw_no_version")}</option>`;
+          selSpan.textContent = t("fw_none");
+          return;
+        }
+
+        const versions = fwData[hw][cat];
+
+        let verOptions = "";
+        let activeVersionIdx = 0;
+        versions.forEach((v, i) => {
+          const label = v.label === "最新版" ? t("version_latest") : v.label;
+          const sel = i === activeVersionIdx ? " selected" : "";
+          verOptions += `<option value="${i}"${sel}>${label}</option>`;
+        });
+        verSelect.innerHTML = verOptions;
+
+        if (verSelect.dataset.lastIdx !== undefined) {
+          const last = parseInt(verSelect.dataset.lastIdx);
+          if (last < versions.length) {
+            verSelect.value = last;
+            activeVersionIdx = last;
+          }
+        }
+
+        renderVersionFiles(
+          container,
+          versions,
+          activeVersionIdx,
+          freq,
+          selSpan,
+        );
+      }
+
+      function verSelectSaveIdx() {
+        const verSelect = document.getElementById("fw-version");
+        verSelect.dataset.lastIdx = verSelect.value;
+      }
+
+      document
+        .getElementById("fw-version")
+        .addEventListener("change", function () {
+          verSelectSaveIdx();
+          updateFirmwareList();
+        });
+
+      function renderVersionFiles(
+        container,
+        versions,
+        versionIdx,
+        freq,
+        selSpan,
+      ) {
+        container.innerHTML = "";
+        const verFiles = versions[versionIdx].files;
+        const filtered = verFiles.filter((f) => freqMatches(f.name, freq));
+        const displayFiles = filtered.length > 0 ? filtered : verFiles;
+
+        displayFiles.forEach((f, i) => {
+          const div = document.createElement("div");
+          div.className = "fw-item";
+          div.innerHTML = `<span>${f.name}</span>`;
+          div.dataset.path = f.path;
+          div.onclick = function () {
+            container
+              .querySelectorAll(".fw-item")
+              .forEach((d) => d.classList.remove("selected"));
+            div.classList.add("selected");
+            selSpan.textContent = f.path;
+          };
+          container.appendChild(div);
+          if (i === 0) {
+            div.classList.add("selected");
+            selSpan.textContent = f.path;
+          }
+        });
+      }
+
+      function freqMatches(name, freq) {
+        const n = name.toLowerCase();
+        if (freq === "1000000") return n.includes("1m");
+        if (freq === "500000") return n.includes("500k");
+        if (freq === "250000") return n.includes("250k");
+        if (freq === "other")
+          return !n.includes("1m") && !n.includes("250k") && !n.includes("500k");
+        return true;
+      }
+
+      function tbe(msg) {
+        if (!msg || !msg.startsWith("_backend.")) return msg;
+        const key = msg.slice(9);
+        const be = (I18N[currentLang] && I18N[currentLang]["_backend"]) || {};
+        return (
+          be[key] || ((I18N["en"] && I18N["en"]["_backend"]) || {})[key] || key
+        );
+      }
+
+      // ============================================================
+      // 设备查询
+      // ============================================================
+      async function queryCAN() {
+        logConsole("info", t("log_can_query"));
+        try {
+          const r = await fetch("/api/devices/can");
+          const d = await r.json();
+          if (d.error) {
+            logConsole("error", tbe(d.error));
+            return;
+          }
+          if (d.devices.length > 0) {
+            document.getElementById("can-uuid").value = d.devices[0];
+            logConsole(
+              "success",
+              t("log_can_found", {
+                count: String(d.devices.length),
+                uuids: d.devices.join(", "),
+              }),
+            );
+          } else {
+            logConsole("warn", t("log_can_none"));
+          }
+          if (d.raw_output)
+            logConsole("info", t("log_raw_output") + "\n" + d.raw_output);
+        } catch (e) {
+          logConsole("error", t("log_query_fail", { msg: e.message }));
+        }
+      }
+
+      async function queryUSB() {
+        logConsole("info", t("log_usb_query"));
+        try {
+          const r = await fetch("/api/devices/usb");
+          const d = await r.json();
+          if (d.devices.length > 0) {
+            document.getElementById("serial-device").value = d.devices[0];
+            logConsole(
+              "success",
+              t("log_usb_found", { count: String(d.devices.length) }),
+            );
+            d.devices.forEach((dev) => logConsole("info", "  " + dev));
+          } else {
+            logConsole("warn", t("log_usb_none"));
+          }
+        } catch (e) {
+          logConsole("error", t("log_query_fail", { msg: e.message }));
+        }
+      }
+
+      async function enterBootloader() {
+        const mode = document.getElementById("flash-mode").value;
+        if (mode === "CAN") {
+          const uuid = document.getElementById("can-uuid").value.trim();
+          const canIf = document.getElementById("env-can").textContent.trim();
+          if (!uuid) {
+            logConsole("error", t("err_enter_uuid"));
+            return;
+          }
+          logConsole("info", "Entering BL via CAN: " + uuid);
+          try {
+            const r = await fetch("/api/devices/can/enter-bl", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ can_interface: canIf, can_uuid: uuid }),
+            });
+            const d = await r.json();
+            if (d.success) {
+              logConsole(
+                "success",
+                "Bootloader entered. Re-query CAN devices to find it.",
+              );
+            } else {
+              logConsole("error", "Enter BL failed: " + (d.error || "unknown"));
+            }
+          } catch (e) {
+            logConsole("error", t("log_query_fail", { msg: e.message }));
+          }
+          return;
+        }
+
+        const serial = document.getElementById("serial-device").value.trim();
+        if (!serial) {
+          logConsole("error", t("err_enter_serial"));
+          return;
+        }
+        logConsole("info", "Entering BL: " + serial);
+        try {
+          const r = await fetch("/api/devices/usb/enter-bl", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ serial_device: serial }),
+          });
+          const d = await r.json();
+          if (d.success) {
+            logConsole(
+              "success",
+              "Bootloader entered. Run Detect BL to find it.",
+            );
+          } else {
+            logConsole("error", "Enter BL failed: " + (d.error || "unknown"));
+          }
+        } catch (e) {
+          logConsole("error", t("log_query_fail", { msg: e.message }));
+        }
+      }
+
+      async function exitBootloader() {
+        const btn = document.querySelector("[onclick='exitBootloader()']");
+        btn.disabled = true;
+        const mode = document.getElementById("flash-mode").value;
+
+        if (mode === "CAN") {
+          const uuid = document.getElementById("can-uuid").value.trim();
+          const canIf = document.getElementById("env-can").textContent.trim();
+          if (!uuid) {
+            logConsole("error", t("err_enter_uuid"));
+            btn.disabled = false;
+            return;
+          }
+          logConsole("info", "Exiting BL via CAN: " + uuid);
+          try {
+            const r = await fetch("/api/devices/can/exit-bl", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ can_interface: canIf, can_uuid: uuid }),
+            });
+            const d = await r.json();
+            if (d.success) {
+              logConsole("success", "Device reset signal sent.");
+            } else {
+              logConsole("error", "Exit BL failed: " + (d.error || "unknown"));
+            }
+          } catch (e) {
+            logConsole("error", t("log_query_fail", { msg: e.message }));
+          }
+          btn.disabled = false;
+          return;
+        }
+
+        let bl = document.getElementById("boot-serial").value.trim();
+        if (!bl) {
+          logConsole("info", "No BL serial cached, auto-scanning...");
+          const r = await fetch("/api/devices/usb/bootloader");
+          const d = await r.json();
+          bl = d.bootloader_serial || "";
+          if (bl) {
+            document.getElementById("boot-serial").value = bl;
+            logConsole("success", "Found BL: " + bl);
+          }
+        }
+        if (!bl) {
+          logConsole("error", "No bootloader device found");
+          btn.disabled = false;
+          return;
+        }
+        logConsole("info", "Exiting BL: " + bl);
+        try {
+          const r = await fetch("/api/devices/usb/exit-bl", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ serial_device: bl }),
+          });
+          const d = await r.json();
+          if (d.success) {
+            logConsole("success", "Device reset signal sent.");
+          } else {
+            logConsole("error", "Exit BL failed: " + (d.error || "unknown"));
+          }
+        } catch (e) {
+          logConsole("error", t("log_query_fail", { msg: e.message }));
+        }
+        btn.disabled = false;
+      }
+
+      async function detectBootloader() {
+        const btn = document.querySelector("[onclick='detectBootloader()']");
+        btn.disabled = true;
+        btn.textContent = t("dev_boot_detecting");
+        logConsole("info", "Scanning for bootloader devices...");
+        try {
+          const r = await fetch("/api/devices/usb/bootloader");
+          const d = await r.json();
+          if (d.bootloader_serial) {
+            document.getElementById("boot-serial").value = d.bootloader_serial;
+            logConsole("success", "BL detected: " + d.bootloader_serial);
+          } else {
+            logConsole("warn", "BL not found");
+          }
+        } catch (e) {
+          logConsole("error", t("log_query_fail", { msg: e.message }));
+        }
+        btn.disabled = false;
+        btn.textContent = t("dev_boot_detect");
+      }
+
+      async function queryDFU() {
+        logConsole("info", t("log_dfu_query"));
+        try {
+          const r = await fetch("/api/devices/dfu");
+          const d = await r.json();
+          if (d.devices_found) {
+            logConsole("success", t("log_dfu_found"));
+          } else {
+            logConsole("warn", t("log_dfu_none"));
+          }
+          if (d.raw_output)
+            logConsole("info", t("log_raw_output") + "\n" + d.raw_output);
+        } catch (e) {
+          logConsole("error", t("log_query_fail", { msg: e.message }));
+        }
+      }
+
+      // ============================================================
+      // 刷写控制
+      // ============================================================
+      async function startFlash() {
+        const mode = document.getElementById("flash-mode").value;
+        const hw = document.getElementById("hw-platform").value;
+        const freq =
+          mode === "CAN" ? document.getElementById("frequency").value : "";
+        const cat = document.getElementById("fw-category").value;
+
+        const selFw = document.querySelector("#fw-list .fw-item.selected");
+        if (!selFw) {
+          logConsole("error", t("err_select_fw"));
+          return;
+        }
+
+        const params = {
+          mode,
+          hw_platform: hw,
+          frequency: freq,
+          fw_category: cat,
+          fw_file: selFw.dataset.path,
+          lang: currentLang,
+          bootloader: env.bootloader || "katapult",
+          can_interface: env.can_interface || "can0",
+        };
+
+        if (mode === "CAN") {
+          params.can_uuid = document.getElementById("can-uuid").value.trim();
+          if (!params.can_uuid) {
+            logConsole("error", t("err_enter_uuid"));
+            return;
+          }
+        } else if (mode === "USB") {
+          params.serial_device = document
+            .getElementById("serial-device")
+            .value.trim();
+          const bs = document.getElementById("boot-serial").value.trim();
+          if (bs) {
+            params.bootloader_serial = bs;
+          } else if (!params.serial_device) {
+            logConsole("error", t("err_enter_serial"));
+            return;
+          }
+        } else if (mode === "DFU") {
+          params.dfu_addr = document.getElementById("dfu-addr").value;
+        }
+
+        document.getElementById("btn-flash").disabled = true;
+        document.getElementById("btn-cancel").disabled = false;
+        document.getElementById("progress").style.display = "block";
+        clearConsole();
+        logConsole("info", t("log_flash_send"));
+        logConsole("info", JSON.stringify(params, null, 2));
+
+        try {
+          const r = await fetch("/api/flash", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+          });
+          const d = await r.json();
+          currentTaskId = d.task_id;
+          logConsole("info", t("log_task_id", { id: currentTaskId }));
+          startPolling();
+        } catch (e) {
+          logConsole("error", t("log_request_fail", { msg: e.message }));
+          resetButtons();
+        }
+      }
+
+      async function cancelFlash() {
+        if (!currentTaskId) return;
+        try {
+          await fetch("/api/flash/cancel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task_id: currentTaskId }),
+          });
+          stopPolling();
+          resetButtons();
+          logConsole("warn", t("log_cancel_by_user"));
+        } catch (e) {
+          console.error("cancelFlash:", e);
+        }
+      }
+
+      function startPolling() {
+        if (pollTimer) clearInterval(pollTimer);
+        let lastLen = 0;
+        pollTimer = setInterval(async () => {
+          try {
+            const r = await fetch(`/api/tasks/${currentTaskId}/output`);
+            const d = await r.json();
+            const lines = d.output.split("\n");
+            for (let i = lastLen; i < lines.length; i++) {
+              if (lines[i]) renderLine(lines[i]);
+            }
+            lastLen = lines.length;
+
+            if (d.status === "completed") {
+              stopPolling();
+              resetButtons();
+              logConsole("success", t("log_flash_complete"));
+            } else if (d.status === "failed") {
+              stopPolling();
+              resetButtons();
+              logConsole("error", t("log_flash_failed"));
+            } else if (d.status === "cancelled") {
+              stopPolling();
+              resetButtons();
+              logConsole("warn", t("log_cancelled"));
+            }
+            document.getElementById("progress-text").textContent =
+              t("progress_status") + d.status;
+          } catch (e) {
+            console.error("pollFlashTask:", e);
+          }
+        }, 500);
+      }
+
+      function stopPolling() {
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      }
+
+      function resetButtons() {
+        document.getElementById("btn-flash").disabled = false;
+        document.getElementById("btn-cancel").disabled = true;
+        document.getElementById("progress").style.display = "none";
+      }
+
+      // ============================================================
+      // 控制台
+      // ============================================================
+      function logConsole(level, msg) {
+        const el = document.getElementById("console");
+        const ts = new Date().toLocaleTimeString();
+        el.innerHTML += `<span class="ts">[${ts}]</span> <span class="${level}">${escapeHtml(msg)}</span>\n`;
+        el.scrollTop = el.scrollHeight;
+      }
+
+      function renderLine(line) {
+        let cls = "info";
+        const l = line.toLowerCase();
+        if (/error|fail|错误|失败/.test(l)) cls = "error";
+        else if (/warn|警告/.test(l)) cls = "warn";
+        else if (/success|完成|ok/.test(l)) cls = "success";
+        const el = document.getElementById("console");
+        const ts = new Date().toLocaleTimeString();
+        el.innerHTML += `<span class="ts">[${ts}]</span> <span class="${cls}">${escapeHtml(line)}</span>\n`;
+        el.scrollTop = el.scrollHeight;
+      }
+
+      function clearConsole() {
+        document.getElementById("console").innerHTML = "";
+      }
+
+      function escapeHtml(s) {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      init();
+    </script>
+  </body>
+</html>
