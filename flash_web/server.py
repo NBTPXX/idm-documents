@@ -492,6 +492,14 @@ def run_flash(task):
             bootloader_serial = params.get("bootloader_serial", "")
             if bootloader_serial and os.path.exists(bootloader_serial):
                 log(_t(lang, "bl_already", device=bootloader_serial))
+            elif bootloader_serial:
+                log(f"BL device gone: {bootloader_serial}, try re-enter BL")
+                if not serial_device:
+                    task.status = "failed"
+                    log("请先点击「进入BL」使设备进入Bootloader模式")
+                    return
+                log(_t(lang, "enter_bl", device=serial_device))
+                bootloader_serial = detect_bootloader_serial(serial_device, try_enter=True)
             else:
                 if not serial_device:
                     task.status = "failed"
