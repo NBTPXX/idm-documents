@@ -385,7 +385,13 @@ async function loadFirmwareList() {
   try {
     const r = await fetch("/api/firmware/list" + qs);
     fwData = await r.json();
-  } catch(e) { console.error("cancelFlash:", e); }
+  } catch(e) { console.error("loadFirmwareList:", e); }
+}
+
+async function refreshFirmwareList() {
+  await loadFirmwareList();
+  updateFirmwareList();
+}
 
 let mrConnected = false;
 
