@@ -952,11 +952,11 @@
                 uuids: d.devices.join(", "),
               }),
             );
-            if (d.raw_output)
-              logConsole("info", t("log_raw_output") + "\n" + d.raw_output);
           } else {
             logConsole("warn", t("log_can_none"));
           }
+          if (d.raw_output)
+            logConsole("info", t("log_raw_output") + "\n" + d.raw_output);
         } catch (e) {
           logConsole("error", t("log_query_fail", { msg: e.message }));
         }

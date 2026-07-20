@@ -138,17 +138,15 @@ def query_can_devices():
 
     try:
         if env["bootloader"] == "katapult":
-            result = subprocess.run(
-                [python_exe, env["flash_tool"], "-i", can_if, "-q"],
-                capture_output=True, text=True, timeout=30,
-            )
+            cmd = [python_exe, env["flash_tool"], "-i", can_if, "-q"]
         else:
-            result = subprocess.run(
-                [python_exe, env["flash_tool"], "-q"],
-                capture_output=True, text=True, timeout=30,
-            )
+            cmd = [python_exe, env["flash_tool"], "-q"]
 
-        output = result.stdout + result.stderr
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30,
+        )
+
+        output = "$ " + " ".join(cmd) + "\n" + result.stdout + result.stderr
         uuids = re.findall(r"[0-9a-f]{12,}", output)
         return {
             "devices": list(set(uuids)),
