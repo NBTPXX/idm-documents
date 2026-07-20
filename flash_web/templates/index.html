@@ -591,6 +591,8 @@ async function enterBootloader() {
 }
 
 async function exitBootloader() {
+  const btn = document.querySelector("[onclick='exitBootloader()']");
+  btn.disabled = true;
   let bl = document.getElementById("boot-serial").value.trim();
   if (!bl) {
     logConsole("info", "No BL serial cached, auto-scanning...");
@@ -602,7 +604,7 @@ async function exitBootloader() {
       logConsole("success", "Found BL: " + bl);
     }
   }
-  if (!bl) { logConsole("error", "No bootloader device found"); return; }
+  if (!bl) { logConsole("error", "No bootloader device found"); btn.disabled = false; return; }
   logConsole("info", "Exiting BL: " + bl);
   try {
     const r = await fetch("/api/devices/usb/exit-bl", {
@@ -617,6 +619,7 @@ async function exitBootloader() {
       logConsole("error", "Exit BL failed: " + (d.error || "unknown"));
     }
   } catch(e) { logConsole("error", t("log_query_fail", { msg: e.message })); }
+  btn.disabled = false;
 }
 
 async function detectBootloader() {
