@@ -106,7 +106,7 @@ def detect_environment():
 # ============================================================
 def _is_bl_device(path):
     name = path.lower()
-    return "katapult" in name or "canboot" in name or "stm32" in name
+    return "katapult" in name or "canboot" in name
 
 
 def _scan_serial_devices():
