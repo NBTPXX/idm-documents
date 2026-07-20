@@ -622,11 +622,47 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                 return
             try:
                 import serial as pyserial
-                s = pyserial.Serial(serial, timeout=0.5)
-                s.setDTR(False)
-                time.sleep(0.1)
-                s.setDTR(True)
-                s.close()
+                CMD_HEADER = b'\x01\x88'
+                CMD_TRAILER = b'\x99\x03'
+
+                def crc16_ccitt(buf):
+                    crc = 0xffff
+                    for b in buf:
+                        b ^= crc & 0xff
+                        b ^= (b & 0x0f) << 4
+                        crc = ((b << 8) | (crc >> 8)) ^ (b >> 4) ^ (b << 3)
+                    return crc & 0xFFFF
+
+                def build_cmd(cmd, payload=b''):
+                    wcnt = (len(payload) // 4) & 0xFF
+                    out = bytearray(CMD_HEADER)
+                    out.append(cmd); out.append(wcnt)
+                    out.extend(payload)
+                    crc_val = crc16_ccitt(out[2:])
+                    out.extend(struct.pack("<H", crc_val))
+                    out.extend(CMD_TRAILER)
+                    return bytes(out)
+
+                s = pyserial.Serial(baudrate=250000, timeout=0, exclusive=True)
+                s.port = serial; s.open()
+                s.reset_input_buffer()
+                s.write(build_cmd(0x90)); s.flush()
+                time.sleep(0.3)
+                s.reset_input_buffer()
+                s.write(build_cmd(0x11)); s.flush()
+                raw = b''
+                deadline = time.time() + 3
+                while time.time() < deadline:
+                    chunk = s.read(4096)
+                    if chunk:
+                        raw += chunk
+                        if CMD_TRAILER in raw and raw.find(CMD_HEADER) >= 0:
+                            break
+                    time.sleep(0.05)
+                s.write(build_cmd(0x15)); s.flush()
+                time.sleep(0.3)
+                try: s.close()
+                except Exception: pass
                 time.sleep(1)
                 self.send_json({"success": True})
             except Exception as e:
