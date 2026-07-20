@@ -87,6 +87,15 @@ EOF
         print_ok "Moonraker update_manager configured"
     fi
 
+    ASVC_FILE="$(dirname "${MOONRAKER_CONF}")/moonraker.asvc"
+    if grep -q "^${SERVICE_NAME}$" "${ASVC_FILE}" 2>/dev/null; then
+        print_info "${SERVICE_NAME} already in moonraker.asvc, skipping"
+    else
+        print_info "Adding ${SERVICE_NAME} to ${ASVC_FILE} ..."
+        echo "${SERVICE_NAME}" >> "${ASVC_FILE}"
+        print_ok "moonraker.asvc updated"
+    fi
+
     print_info "Restart Moonraker to apply: sudo systemctl restart moonraker"
 fi
 
