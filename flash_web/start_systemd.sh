@@ -3,6 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export HOME="${HOME:-/home/user}"
 export MOONRAKER_URL="${MOONRAKER_URL:-http://localhost:7125}"
 
 if [[ -z "${IDM_FW_BASE:-}" ]]; then
