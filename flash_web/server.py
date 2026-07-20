@@ -622,9 +622,12 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                 return
             try:
                 import serial as pyserial
-                s = pyserial.Serial(serial, 1200, timeout=0.5)
+                s = pyserial.Serial(serial, timeout=0.5)
+                s.setDTR(False)
+                time.sleep(0.1)
+                s.setDTR(True)
                 s.close()
-                time.sleep(0.5)
+                time.sleep(1)
                 self.send_json({"success": True})
             except Exception:
                 try:
