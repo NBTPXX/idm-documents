@@ -79,8 +79,20 @@ info_tags:
 EOF
 
         print_ok "Moonraker update_manager configured"
-        print_info "Restart Moonraker to apply: sudo systemctl restart moonraker"
     fi
+
+    if grep -q "\[service ${SERVICE_NAME}\]" "${MOONRAKER_CONF}" 2>/dev/null; then
+        print_info "[service ${SERVICE_NAME}] already exists, skipping"
+    else
+        print_info "Adding [service ${SERVICE_NAME}] to ${MOONRAKER_CONF} ..."
+        cat >> "${MOONRAKER_CONF}" <<EOF
+
+[service ${SERVICE_NAME}]
+EOF
+        print_ok "Moonraker service registered"
+    fi
+
+    print_info "Restart Moonraker to apply: sudo systemctl restart moonraker"
 fi
 
 # -----------------------------------------------------------
