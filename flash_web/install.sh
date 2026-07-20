@@ -16,7 +16,7 @@ print_warn()  { echo -e "${YELLOW}  !! $1${NC}"; }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-SERVICE_NAME="idm-flash-web"
+SERVICE_NAME="idm_flash_web"
 SERVICE_PORT="8888"
 
 PYTHON_BIN="python3"
@@ -102,7 +102,7 @@ fi
 # -----------------------------------------------------------
 # 3. Install systemd service
 # -----------------------------------------------------------
-SERVICE_FILE="${SCRIPT_DIR}/idm-flash-web.service"
+SERVICE_FILE="${SCRIPT_DIR}/idm_flash_web.service"
 SYSTEMD_DIR="/etc/systemd/system"
 USER_SYSTEMD_DIR="${HOME}/.config/systemd/user"
 

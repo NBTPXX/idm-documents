@@ -11,8 +11,8 @@ NC='\033[0m'
 print_info() { echo -e "${CYAN}  -> $1${NC}"; }
 print_ok()   { echo -e "${GREEN}  OK $1${NC}"; }
 
-SERVICE_NAME="idm-flash-web"
-SERVICE_NAME_ALT="idm_flash_web"
+SERVICE_NAME="idm_flash_web"
+SERVICE_NAME_ALT="idm-flash-web"
 UPDATE_NAME="idm_flash_web"
 
 echo ""
