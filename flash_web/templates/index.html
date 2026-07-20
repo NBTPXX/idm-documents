@@ -567,7 +567,12 @@ async function queryUSB() {
 }
 
 async function detectBootloader() {
-  const serial = document.getElementById("serial-device").value.trim();
+  let serial = document.getElementById("serial-device").value.trim();
+  if (!serial) {
+    logConsole("info", "Auto-querying USB devices...");
+    await queryUSB();
+    serial = document.getElementById("serial-device").value.trim();
+  }
   if (!serial) { logConsole("error", t("err_enter_serial")); return; }
   const btn = document.querySelector("[onclick='detectBootloader()']");
   btn.disabled = true;
