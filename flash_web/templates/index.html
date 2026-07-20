@@ -148,7 +148,7 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
       <div class="info-row"><span class="key">Bootloader</span><span class="val" id="env-bl">-</span></div>
       <div class="info-row"><span class="key">CAN</span><span class="val" id="env-can">-</span></div>
       <div class="info-row"><span class="key">dfu-util</span><span class="val" id="env-dfu">-</span></div>
-      <div class="info-row"><span class="key">Firmware Path</span><span class="val" id="env-fw">-</span></div>
+      <div class="info-row"><span class="key">Firmware Path</span><span class="val"><input type="text" id="env-fw" style="width:100%;box-sizing:border-box;background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:13px" onchange="updateFirmwareList()"></span></div>
     </div>
   </div>
 
@@ -345,12 +345,18 @@ function updateEnvDisplay() {
   document.getElementById("env-bl").textContent = env.bootloader || t("env_not_detected");
   document.getElementById("env-can").textContent = env.can_interface || t("env_not_detected");
   document.getElementById("env-dfu").textContent = env.has_dfutil ? t("env_detected") : t("env_not_detected");
-  document.getElementById("env-fw").textContent = env.fw_base || "-";
+  const fwInput = document.getElementById("env-fw");
+  if (!fwInput.dataset.init) {
+    fwInput.value = env.fw_base || "";
+    fwInput.dataset.init = "1";
+  }
 }
 
 async function loadFirmwareList() {
+  const fwBase = document.getElementById("env-fw").value.trim();
+  const qs = fwBase ? "?fw_base=" + encodeURIComponent(fwBase) : "";
   try {
-    const r = await fetch("/api/firmware/list");
+    const r = await fetch("/api/firmware/list" + qs);
     fwData = await r.json();
   } catch(e) {}
 }

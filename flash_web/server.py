@@ -194,15 +194,22 @@ def _scan_firmware_dir(base_dir, is_deployer=False, is_rp2040=False):
     return versions
 
 
-def list_firmware():
+def list_firmware(fw_base=None):
+    if fw_base:
+        base = Path(fw_base)
+    else:
+        base = FW_BASE
+    fw_idm = base / "IDM固件(Main firmware)"
+    fw_canboot = base / "Canboot通讯频率覆写用固件(canboot deployer firmware)"
+    fw_rp2040 = base / "rp2040"
     return {
         "stm32": {
-            "main": _scan_firmware_dir(FW_DIR_IDM),
-            "deployer": _scan_firmware_dir(FW_DIR_CANBOOT, is_deployer=True),
+            "main": _scan_firmware_dir(fw_idm),
+            "deployer": _scan_firmware_dir(fw_canboot, is_deployer=True),
         },
         "rp2040": {
-            "main": _scan_firmware_dir(FW_DIR_RP2040, is_rp2040=True),
-            "deployer": _scan_firmware_dir(FW_DIR_RP2040, is_deployer=True, is_rp2040=True),
+            "main": _scan_firmware_dir(fw_rp2040, is_rp2040=True),
+            "deployer": _scan_firmware_dir(fw_rp2040, is_deployer=True, is_rp2040=True),
         },
     }
 
@@ -417,7 +424,9 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
             self.send_json(query_dfu_devices())
 
         elif path == "/api/firmware/list":
-            self.send_json(list_firmware())
+            qs = parse_qs(urlparse(self.path).query)
+            fw_base = qs.get("fw_base", [None])[0]
+            self.send_json(list_firmware(fw_base))
 
         elif path == "/api/tasks":
             with tasks_lock:
