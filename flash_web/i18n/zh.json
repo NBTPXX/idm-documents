@@ -11,6 +11,7 @@
   "hw_stm32": "STM32 (原版 IDM)",
   "hw_rp2040": "RP2040",
   "frequency": "频率",
+  "freq_other": "其他",
   "fw_category": "固件类型",
   "fw_main": "IDM 主固件",
   "fw_deployer": "Bootloader 覆盖固件",

@@ -11,6 +11,7 @@
   "hw_stm32": "STM32 (Original IDM)",
   "hw_rp2040": "RP2040",
   "frequency": "Frequency",
+  "freq_other": "Other",
   "fw_category": "Firmware Type",
   "fw_main": "IDM Main Firmware",
   "fw_deployer": "Bootloader Deployer",

@@ -11,6 +11,7 @@
   "hw_stm32": "STM32 (純正IDM)",
   "hw_rp2040": "RP2040",
   "frequency": "通信速度",
+  "freq_other": "その他",
   "fw_category": "ファーム種別",
   "fw_main": "IDM メインファーム",
   "fw_deployer": "ブートローダー",

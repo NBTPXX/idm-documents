@@ -11,6 +11,7 @@
   "hw_stm32": "STM32 (оригинал IDM)",
   "hw_rp2040": "RP2040",
   "frequency": "Частота",
+  "freq_other": "Прочее",
   "fw_category": "Тип прошивки",
   "fw_main": "IDM основная",
   "fw_deployer": "Загрузчик",
