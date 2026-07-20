@@ -588,14 +588,17 @@ async function enterBootloader() {
 }
 
 async function exitBootloader() {
-  const serial = document.getElementById("serial-device").value.trim();
-  if (!serial) { logConsole("error", t("err_enter_serial")); return; }
-  logConsole("info", "Exiting BL: " + serial);
+  let bl = document.getElementById("boot-serial").value.trim();
+  if (!bl) {
+    bl = document.getElementById("serial-device").value.trim();
+  }
+  if (!bl) { logConsole("error", t("err_enter_serial")); return; }
+  logConsole("info", "Exiting BL: " + bl);
   try {
     const r = await fetch("/api/devices/usb/exit-bl", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({serial_device: serial})
+      body: JSON.stringify({serial_device: bl})
     });
     const d = await r.json();
     if (d.success) {
