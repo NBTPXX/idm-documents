@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================
-# IDM Flash Web - 卸载脚本
+# IDM Flash Web - Uninstall Script
 # ============================================================
 set -euo pipefail
 
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 NC='\033[0m'
@@ -18,54 +17,54 @@ UPDATE_NAME="idm_flash_web"
 
 echo ""
 echo "========================================="
-echo "  IDM Flash Web 卸载脚本"
+echo "  IDM Flash Web Uninstaller"
 echo "========================================="
 echo ""
 
-# 停止并移除 systemd 服务
+# Stop and remove systemd service
 if systemctl --user is-active --quiet "${SERVICE_NAME}" 2>/dev/null; then
-    print_info "停止用户级服务..."
+    print_info "Stopping user-level service..."
     systemctl --user stop "${SERVICE_NAME}"
     systemctl --user disable "${SERVICE_NAME}"
     rm -f "${HOME}/.config/systemd/user/${SERVICE_NAME}.service"
     systemctl --user daemon-reload
-    print_ok "用户服务已移除"
+    print_ok "User service removed"
 elif systemctl is-active --quiet "${SERVICE_NAME}" 2>/dev/null; then
-    print_info "停止系统级服务..."
+    print_info "Stopping system-level service..."
     sudo systemctl stop "${SERVICE_NAME}"
     sudo systemctl disable "${SERVICE_NAME}"
     sudo rm -f "/etc/systemd/system/${SERVICE_NAME}.service"
     sudo systemctl daemon-reload
-    print_ok "系统服务已移除"
+    print_ok "System service removed"
 else
-    print_info "服务未在运行"
+    print_info "Service is not running"
 fi
 
-# 移除 Moonraker update_manager 配置
+# Remove Moonraker update_manager config
 for conf in \
     "${HOME}/printer_data/config/moonraker.conf" \
     "${HOME}/klipper_config/moonraker.conf" \
     "${HOME}/moonraker.conf"; do
     if [[ -f "${conf}" ]] && grep -q "\[update_manager ${UPDATE_NAME}\]" "${conf}" 2>/dev/null; then
-        print_info "移除 Moonraker update_manager 配置..."
+        print_info "Removing Moonraker update_manager config..."
         awk -v name="${UPDATE_NAME}" '
           BEGIN { skip=0 }
           $0 ~ "^\\[update_manager " name "\\]" { skip=1; next }
           skip && /^\[/ { skip=0 }
           !skip { print }
         ' "${conf}" > "${conf}.tmp" && mv "${conf}.tmp" "${conf}"
-        print_ok "已从 ${conf} 移除"
+        print_ok "Removed from ${conf}"
     fi
 done
 
-# 移除安装目录
+# Remove install directory
 if [[ -d "${INSTALL_DIR}" ]]; then
-    read -r -p "是否删除安装目录 ${INSTALL_DIR} ? [y/N]: " CONFIRM
+    read -r -p "Delete install directory ${INSTALL_DIR}? [y/N]: " CONFIRM
     if [[ "${CONFIRM}" =~ ^[Yy]$ ]]; then
         rm -rf "${INSTALL_DIR}"
-        print_ok "安装目录已删除"
+        print_ok "Install directory removed"
     fi
 fi
 
 echo ""
-print_ok "卸载完成"
+print_ok "Uninstall complete"
