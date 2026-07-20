@@ -81,16 +81,17 @@ EOF
         print_ok "Moonraker update_manager configured"
     fi
 
-    if grep -q "\[service ${SERVICE_NAME}\]" "${MOONRAKER_CONF}" 2>/dev/null; then
-        print_info "[service ${SERVICE_NAME}] already exists, skipping"
+    if grep -q "managed_services:" "${MOONRAKER_CONF}" 2>/dev/null && \
+       grep -A10 "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" | grep -q "${SERVICE_NAME}"; then
+        print_info "[update_manager] already has managed_services: ${SERVICE_NAME}, skipping"
     else
-        print_info "Adding [service ${SERVICE_NAME}] to ${MOONRAKER_CONF} ..."
-        cat >> "${MOONRAKER_CONF}" <<EOF
-
-[service ${SERVICE_NAME}]
-type: systemd
-EOF
-        print_ok "Moonraker service registered"
+        print_info "Adding managed_services: ${SERVICE_NAME} to Moonraker config ..."
+        if grep -q "managed_services:" "${MOONRAKER_CONF}" 2>/dev/null; then
+            sed -i "/\[update_manager ${UPDATE_NAME}\]/,/^\[/s/managed_services:.*/& ${SERVICE_NAME}/" "${MOONRAKER_CONF}"
+        else
+            sed -i "/\[update_manager ${UPDATE_NAME}\]/a managed_services: ${SERVICE_NAME}" "${MOONRAKER_CONF}"
+        fi
+        print_ok "managed_services added"
     fi
 
     print_info "Restart Moonraker to apply: sudo systemctl restart moonraker"
