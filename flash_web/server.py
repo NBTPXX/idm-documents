@@ -136,6 +136,42 @@ def query_usb_devices():
     return {"devices": sorted(set(devices))}
 
 
+def detect_bootloader_serial(serial_device):
+    before = set()
+    for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
+        import glob
+        before.update(glob.glob(pattern))
+
+    enter_cmd = [
+        KLIPPER_ENV, "-c",
+        f"import flash_usb as u; u.enter_bootloader('{serial_device}')"
+    ]
+    subprocess.run(enter_cmd, cwd=os.path.join(KLIPPER_DIR, "scripts"),
+                   capture_output=True, timeout=15)
+    time.sleep(3)
+
+    after = set()
+    for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
+        import glob
+        after.update(glob.glob(pattern))
+
+    new_devices = after - before
+    for d in sorted(new_devices):
+        if "katapult" in d.lower() or "stm32" in d.lower():
+            return d
+
+    for d in sorted(new_devices):
+        return d
+
+    candidate = serial_device
+    if os.path.exists(serial_device):
+        return candidate
+    for d in after:
+        if d != serial_device:
+            return d
+    return candidate
+
+
 def query_dfu_devices():
     try:
         result = subprocess.run(
@@ -301,7 +337,26 @@ def run_flash(task):
                            capture_output=True, timeout=15)
             time.sleep(3)
 
-            bootloader_serial = params.get("bootloader_serial", serial_device)
+            bootloader_serial = params.get("bootloader_serial", "").strip()
+            if not bootloader_serial:
+                import glob
+                after = set()
+                for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
+                    after.update(glob.glob(pattern))
+                for d in sorted(after):
+                    if "katapult" in d.lower() or "stm32" in d.lower() and d != serial_device:
+                        bootloader_serial = d
+                        log(_t(lang, "bl_detected", device=bootloader_serial))
+                        break
+                if not bootloader_serial:
+                    for d in sorted(after):
+                        if d != serial_device:
+                            bootloader_serial = d
+                            log(_t(lang, "bl_detected", device=bootloader_serial))
+                            break
+                if not bootloader_serial:
+                    bootloader_serial = serial_device
+                    log(_t(lang, "bl_not_found"))
 
             if bootloader == "katapult":
                 cmd = [KLIPPER_ENV, flash_tool, "-d", bootloader_serial, "-f", fw_file]
@@ -419,6 +474,15 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
 
         elif path == "/api/devices/usb":
             self.send_json(query_usb_devices())
+
+        elif path == "/api/devices/usb/bootloader":
+            qs = parse_qs(parsed.query)
+            serial = qs.get("serial", [""])[0]
+            if not serial:
+                self.send_json({"error": "missing serial parameter"}, 400)
+            else:
+                bl = detect_bootloader_serial(serial)
+                self.send_json({"bootloader_serial": bl})
 
         elif path == "/api/devices/dfu":
             self.send_json(query_dfu_devices())

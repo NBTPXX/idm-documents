@@ -200,11 +200,10 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
           <div id="dev-usb-panel" style="display:none">
             <label data-i18n="dev_serial">Serial Port</label>
             <input type="text" id="serial-device" placeholder="/dev/serial/by-id/...">
+            <button class="btn btn-secondary btn-sm" onclick="queryUSB()" data-i18n="btn_query_serial" style="margin-bottom:8px">Query Serial</button>
             <label data-i18n="dev_boot_serial">Bootloader Serial (after entering BL)</label>
-            <input type="text" id="boot-serial" placeholder="New port after entering Bootloader">
-            <div style="display:flex;gap:8px;margin-top:4px">
-              <button class="btn btn-secondary btn-sm" onclick="queryUSB()" data-i18n="btn_query_serial">Query Serial</button>
-            </div>
+            <input type="text" id="boot-serial" placeholder="Auto-detected after entering Bootloader">
+            <button class="btn btn-secondary btn-sm" onclick="detectBootloader()" data-i18n="dev_boot_detect">Detect BL</button>
           </div>
           <div id="dev-dfu-panel" style="display:none">
             <label data-i18n="dev_dfu_addr">Flash Address</label>
@@ -536,6 +535,27 @@ async function queryUSB() {
   } catch(e) { logConsole("error", t("log_query_fail", { msg: e.message })); }
 }
 
+async function detectBootloader() {
+  const serial = document.getElementById("serial-device").value.trim();
+  if (!serial) { logConsole("error", t("err_enter_serial")); return; }
+  const btn = document.querySelector("[onclick='detectBootloader()']");
+  btn.disabled = true;
+  btn.textContent = t("dev_boot_detecting");
+  logConsole("info", "Entering Bootloader: " + serial);
+  try {
+    const r = await fetch("/api/devices/usb/bootloader?serial=" + encodeURIComponent(serial));
+    const d = await r.json();
+    if (d.bootloader_serial) {
+      document.getElementById("boot-serial").value = d.bootloader_serial;
+      logConsole("success", "BL detected: " + d.bootloader_serial);
+    } else {
+      logConsole("warn", "BL not found, using: " + serial);
+    }
+  } catch(e) { logConsole("error", t("log_query_fail", { msg: e.message })); }
+  btn.disabled = false;
+  btn.textContent = t("dev_boot_detect");
+}
+
 async function queryDFU() {
   logConsole("info", t("log_dfu_query"));
   try {
@@ -571,8 +591,9 @@ async function startFlash() {
     if (!params.can_uuid) { logConsole("error", t("err_enter_uuid")); return; }
   } else if (mode === "USB") {
     params.serial_device = document.getElementById("serial-device").value.trim();
-    params.bootloader_serial = document.getElementById("boot-serial").value.trim() || params.serial_device;
     if (!params.serial_device) { logConsole("error", t("err_enter_serial")); return; }
+    const bs = document.getElementById("boot-serial").value.trim();
+    if (bs) params.bootloader_serial = bs;
   } else if (mode === "DFU") {
     params.dfu_addr = document.getElementById("dfu-addr").value;
   }
