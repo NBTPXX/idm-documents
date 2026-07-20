@@ -141,7 +141,7 @@ def query_usb_devices():
 def detect_bootloader_serial(serial_device, try_enter=True):
     """Detect bootloader serial. try_enter=True enters bootloader first.
     try_enter=False only scans existing devices without entering BL."""
-    is_bl = "katapult" in serial_device.lower() or "stm32" in serial_device.lower()
+    is_bl = "katapult" in serial_device.lower() or "canboot" in serial_device.lower() or "stm32" in serial_device.lower()
     if is_bl and os.path.exists(serial_device):
         return serial_device
 
@@ -149,9 +149,9 @@ def detect_bootloader_serial(serial_device, try_enter=True):
         for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
             import glob
             for d in glob.glob(pattern):
-                if "katapult" in d.lower() or "stm32" in d.lower():
+                if "katapult" in d.lower() or "canboot" in d.lower() or "stm32" in d.lower():
                     return d
-        return serial_device if os.path.exists(serial_device) else serial_device
+        return ""
 
     before = set()
     for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
@@ -178,7 +178,7 @@ def detect_bootloader_serial(serial_device, try_enter=True):
 
     new_devices = after - before
     for d in sorted(new_devices):
-        if "katapult" in d.lower() or "stm32" in d.lower():
+        if "katapult" in d.lower() or "canboot" in d.lower() or "stm32" in d.lower():
             return d
 
     for d in sorted(new_devices):
