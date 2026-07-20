@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=%h/IDM/flash_web/start_systemd.sh
-WorkingDirectory=%h/IDM/flash_web
+ExecStart=__FLASH_WEB_DIR__/start_systemd.sh
+WorkingDirectory=__FLASH_WEB_DIR__
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal

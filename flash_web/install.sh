@@ -15,7 +15,6 @@ print_ok()    { echo -e "${GREEN}  OK $1${NC}"; }
 print_warn()  { echo -e "${YELLOW}  !! $1${NC}"; }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-INSTALL_DIR="${HOME}/IDM/flash_web"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SERVICE_NAME="idm-flash-web"
 SERVICE_PORT="8888"
@@ -33,23 +32,13 @@ echo "========================================="
 echo ""
 
 # -----------------------------------------------------------
-# 1. Install files
+# 1. Ensure scripts are executable
 # -----------------------------------------------------------
-print_info "Installing files to ${INSTALL_DIR} ..."
-mkdir -p "${INSTALL_DIR}/templates"
-mkdir -p "${INSTALL_DIR}/i18n"
-
-cp "${SCRIPT_DIR}/server.py"       "${INSTALL_DIR}/"
-cp "${SCRIPT_DIR}/start.sh"        "${INSTALL_DIR}/"
-cp "${SCRIPT_DIR}/start_systemd.sh" "${INSTALL_DIR}/"
-cp "${SCRIPT_DIR}/templates/index.html" "${INSTALL_DIR}/templates/"
-cp "${SCRIPT_DIR}/i18n/"*.json           "${INSTALL_DIR}/i18n/"
-
-chmod +x "${INSTALL_DIR}/start.sh"
-chmod +x "${INSTALL_DIR}/start_systemd.sh"
-chmod +x "${INSTALL_DIR}/server.py"
-
-print_ok "Files installed"
+print_info "Setting up ${SCRIPT_DIR} ..."
+chmod +x "${SCRIPT_DIR}/start.sh"
+chmod +x "${SCRIPT_DIR}/start_systemd.sh"
+chmod +x "${SCRIPT_DIR}/server.py"
+print_ok "Done"
 
 # -----------------------------------------------------------
 # 2. Configure Moonraker update_manager
@@ -102,7 +91,7 @@ SYSTEMD_DIR="/etc/systemd/system"
 USER_SYSTEMD_DIR="${HOME}/.config/systemd/user"
 
 if [[ -f "${SERVICE_FILE}" ]]; then
-    sed "s|%h|${HOME}|g" "${SERVICE_FILE}" > "/tmp/${SERVICE_NAME}.service"
+    sed "s|__FLASH_WEB_DIR__|${SCRIPT_DIR}|g" "${SERVICE_FILE}" > "/tmp/${SERVICE_NAME}.service"
     echo "Environment=IDM_FW_BASE=${REPO_DIR}" >> "/tmp/${SERVICE_NAME}.service"
 
     if command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
@@ -142,7 +131,7 @@ if [[ -f "${SERVICE_FILE}" ]]; then
     rm -f "/tmp/${SERVICE_NAME}.service"
 else
     print_warn "Service file not found, skipping systemd config"
-    print_info "Manual start: ${INSTALL_DIR}/start.sh"
+    print_info "Manual start: ${SCRIPT_DIR}/start.sh"
 fi
 
 # -----------------------------------------------------------
