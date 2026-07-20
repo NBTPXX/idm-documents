@@ -149,7 +149,7 @@ def query_can_devices():
             )
 
         output = result.stdout + result.stderr
-        uuids = re.findall(r"[0-9a-f]{16,}", output)
+        uuids = re.findall(r"[0-9a-f]{12,}", output)
         return {
             "devices": list(set(uuids)),
             "raw_output": output,
