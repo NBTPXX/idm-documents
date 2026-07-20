@@ -146,9 +146,14 @@ def detect_bootloader_serial(serial_device):
         KLIPPER_ENV, "-c",
         f"import flash_usb as u; u.enter_bootloader('{serial_device}')"
     ]
-    subprocess.run(enter_cmd, cwd=os.path.join(KLIPPER_DIR, "scripts"),
-                   capture_output=True, timeout=15)
-    time.sleep(3)
+    klipper_scripts = os.path.join(KLIPPER_DIR, "scripts")
+    if os.path.isdir(klipper_scripts) and os.path.exists(KLIPPER_ENV):
+        try:
+            subprocess.run(enter_cmd, cwd=klipper_scripts,
+                           capture_output=True, timeout=15)
+            time.sleep(3)
+        except Exception:
+            pass
 
     after = set()
     for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
