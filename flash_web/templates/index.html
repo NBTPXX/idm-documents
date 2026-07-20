@@ -565,6 +565,28 @@ async function queryUSB() {
 }
 
 async function enterBootloader() {
+  const mode = document.getElementById("flash-mode").value;
+  if (mode === "CAN") {
+    const uuid = document.getElementById("can-uuid").value.trim();
+    const canIf = document.getElementById("env-can").textContent.trim();
+    if (!uuid) { logConsole("error", t("err_enter_uuid")); return; }
+    logConsole("info", "Entering BL via CAN: " + uuid);
+    try {
+      const r = await fetch("/api/devices/can/enter-bl", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({can_interface: canIf, can_uuid: uuid})
+      });
+      const d = await r.json();
+      if (d.success) {
+        logConsole("success", "Bootloader entered. Re-query CAN devices to find it.");
+      } else {
+        logConsole("error", "Enter BL failed: " + (d.error || "unknown"));
+      }
+    } catch(e) { logConsole("error", t("log_query_fail", { msg: e.message })); }
+    return;
+  }
+
   const serial = document.getElementById("serial-device").value.trim();
   if (!serial) { logConsole("error", t("err_enter_serial")); return; }
   logConsole("info", "Entering BL: " + serial);
@@ -586,6 +608,30 @@ async function enterBootloader() {
 async function exitBootloader() {
   const btn = document.querySelector("[onclick='exitBootloader()']");
   btn.disabled = true;
+  const mode = document.getElementById("flash-mode").value;
+
+  if (mode === "CAN") {
+    const uuid = document.getElementById("can-uuid").value.trim();
+    const canIf = document.getElementById("env-can").textContent.trim();
+    if (!uuid) { logConsole("error", t("err_enter_uuid")); btn.disabled = false; return; }
+    logConsole("info", "Exiting BL via CAN: " + uuid);
+    try {
+      const r = await fetch("/api/devices/can/exit-bl", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({can_interface: canIf, can_uuid: uuid})
+      });
+      const d = await r.json();
+      if (d.success) {
+        logConsole("success", "Device reset signal sent.");
+      } else {
+        logConsole("error", "Exit BL failed: " + (d.error || "unknown"));
+      }
+    } catch(e) { logConsole("error", t("log_query_fail", { msg: e.message })); }
+    btn.disabled = false;
+    return;
+  }
+
   let bl = document.getElementById("boot-serial").value.trim();
   if (!bl) {
     logConsole("info", "No BL serial cached, auto-scanning...");

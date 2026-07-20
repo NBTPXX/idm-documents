@@ -8,6 +8,7 @@ import json
 import glob
 import os
 import re
+import socket
 import struct
 import subprocess
 import threading
@@ -340,6 +341,72 @@ def build_katapult_cmd(cmd, payload=b''):
     return bytes(out)
 
 
+# ============================================================
+# CAN 传输层 (Linux socket CAN)
+# ============================================================
+CAN_FRAME_FMT = "<IB3x8s"
+CAN_ADMIN_ID = 0x3f0
+CAN_ADMIN_RESP_ID = 0x3f1
+CAN_NODEID_OFFSET = 128
+
+
+def _can_open(interface):
+    sock = socket.socket(socket.PF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
+    sock.bind((interface,))
+    return sock
+
+
+def _can_send(sock, can_id, data):
+    payload_len = min(len(data), 8)
+    padded = data[:8].ljust(8, b'\x00')
+    sock.send(struct.pack(CAN_FRAME_FMT, can_id, payload_len, padded))
+
+
+def _can_recv(sock, timeout=3):
+    sock.settimeout(timeout)
+    try:
+        data = sock.recv(16)
+        can_id, length, pkt = struct.unpack(CAN_FRAME_FMT, data)
+        return can_id & 0x1FFFFFFF, pkt[:length]
+    except socket.timeout:
+        return None, None
+
+
+def _can_exit_bootloader(can_interface, can_uuid):
+    """通过 CAN 发送 COMPLETE 命令退出 bootloader"""
+    uuid_bytes = bytes.fromhex(can_uuid)[:6]
+
+    sock = _can_open(can_interface)
+
+    # 1. 重置所有节点 ID
+    _can_send(sock, CAN_ADMIN_ID, bytes([0x12]))
+    time.sleep(0.1)
+
+    # 2. 分配节点 ID
+    node_id = CAN_NODEID_OFFSET
+    _can_send(sock, CAN_ADMIN_ID, bytes([0x11]) + uuid_bytes + bytes([node_id]))
+    time.sleep(0.3)
+
+    # 3. 发送 CONNECT
+    node_tx_id = node_id * 2 + 0x100
+    _can_send(sock, node_tx_id, build_katapult_cmd(0x11))
+    # 等待响应
+    deadline = time.time() + 3
+    while time.time() < deadline:
+        can_id, _ = _can_recv(sock, timeout=0.5)
+        if can_id is not None:
+            break
+        time.sleep(0.05)
+
+    # 4. 发送 COMPLETE
+    _can_send(sock, node_tx_id, build_katapult_cmd(0x15))
+    time.sleep(0.3)
+    try:
+        sock.close()
+    except Exception:
+        pass
+
+
 def _read_json_body(handler):
     content_length = int(handler.headers.get("Content-Length", 0))
     if content_length == 0:
@@ -658,6 +725,38 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                 time.sleep(0.3)
                 try: s.close()
                 except Exception: pass
+                time.sleep(1)
+                self.send_json({"success": True})
+            except Exception as e:
+                self.send_json({"success": False, "error": str(e)})
+
+        elif path == "/api/devices/can/enter-bl":
+            can_interface = body_data.get("can_interface", "can0")
+            can_uuid = body_data.get("can_uuid", "")
+            if not can_uuid:
+                self.send_json({"success": False, "error": "missing can_uuid"}, 400)
+                return
+            try:
+                uuid_bytes = bytes.fromhex(can_uuid)
+                if len(uuid_bytes) >= 6:
+                    uuid_bytes = uuid_bytes[:6]
+                sock = _can_open(can_interface)
+                _can_send(sock, CAN_ADMIN_ID, bytes([0x02]) + uuid_bytes)
+                try: sock.close()
+                except Exception: pass
+                time.sleep(2)
+                self.send_json({"success": True})
+            except Exception as e:
+                self.send_json({"success": False, "error": str(e)})
+
+        elif path == "/api/devices/can/exit-bl":
+            can_interface = body_data.get("can_interface", "can0")
+            can_uuid = body_data.get("can_uuid", "")
+            if not can_uuid:
+                self.send_json({"success": False, "error": "missing can_uuid"}, 400)
+                return
+            try:
+                _can_exit_bootloader(can_interface, can_uuid)
                 time.sleep(1)
                 self.send_json({"success": True})
             except Exception as e:
