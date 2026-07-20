@@ -567,25 +567,18 @@ async function queryUSB() {
 }
 
 async function detectBootloader() {
-  let serial = document.getElementById("serial-device").value.trim();
-  if (!serial) {
-    logConsole("info", "Auto-querying USB devices...");
-    await queryUSB();
-    serial = document.getElementById("serial-device").value.trim();
-  }
-  if (!serial) { logConsole("error", t("err_enter_serial")); return; }
   const btn = document.querySelector("[onclick='detectBootloader()']");
   btn.disabled = true;
   btn.textContent = t("dev_boot_detecting");
-  logConsole("info", "Querying BL for: " + serial);
+  logConsole("info", "Scanning for bootloader devices...");
   try {
-    const r = await fetch("/api/devices/usb/bootloader?serial=" + encodeURIComponent(serial));
+    const r = await fetch("/api/devices/usb/bootloader");
     const d = await r.json();
     if (d.bootloader_serial) {
       document.getElementById("boot-serial").value = d.bootloader_serial;
       logConsole("success", "BL detected: " + d.bootloader_serial);
     } else {
-      logConsole("warn", "BL not found, using: " + serial);
+      logConsole("warn", "BL not found");
     }
   } catch(e) { logConsole("error", t("log_query_fail", { msg: e.message })); }
   btn.disabled = false;

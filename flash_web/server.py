@@ -505,11 +505,8 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
         elif path == "/api/devices/usb/bootloader":
             qs = parse_qs(parsed.query)
             serial = qs.get("serial", [""])[0]
-            if not serial:
-                self.send_json({"error": "missing serial parameter"}, 400)
-            else:
-                bl = detect_bootloader_serial(serial, try_enter=False)
-                self.send_json({"bootloader_serial": bl})
+            bl = detect_bootloader_serial(serial, try_enter=False)
+            self.send_json({"bootloader_serial": bl})
 
         elif path == "/api/devices/dfu":
             self.send_json(query_dfu_devices())
