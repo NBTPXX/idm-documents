@@ -14,6 +14,7 @@ print_ok()   { echo -e "${GREEN}  OK $1${NC}"; }
 
 SERVICE_NAME="idm-flash-web"
 INSTALL_DIR="${HOME}/IDM/flash_web"
+UPDATE_NAME="idm_flash_web"
 
 echo ""
 echo "========================================="
@@ -39,6 +40,23 @@ elif systemctl is-active --quiet "${SERVICE_NAME}" 2>/dev/null; then
 else
     print_info "服务未在运行"
 fi
+
+# 移除 Moonraker update_manager 配置
+for conf in \
+    "${HOME}/printer_data/config/moonraker.conf" \
+    "${HOME}/klipper_config/moonraker.conf" \
+    "${HOME}/moonraker.conf"; do
+    if [[ -f "${conf}" ]] && grep -q "\[update_manager ${UPDATE_NAME}\]" "${conf}" 2>/dev/null; then
+        print_info "移除 Moonraker update_manager 配置..."
+        awk -v name="${UPDATE_NAME}" '
+          BEGIN { skip=0 }
+          $0 ~ "^\\[update_manager " name "\\]" { skip=1; next }
+          skip && /^\[/ { skip=0 }
+          !skip { print }
+        ' "${conf}" > "${conf}.tmp" && mv "${conf}.tmp" "${conf}"
+        print_ok "已从 ${conf} 移除"
+    fi
+done
 
 # 移除安装目录
 if [[ -d "${INSTALL_DIR}" ]]; then

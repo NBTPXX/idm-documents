@@ -53,7 +53,55 @@ chmod +x "${INSTALL_DIR}/server.py"
 print_ok "文件已安装"
 
 # -----------------------------------------------------------
-# 2. 安装 systemd 服务
+# 2. 配置 Moonraker update_manager
+# -----------------------------------------------------------
+UPDATE_NAME="idm_flash_web"
+MOONRAKER_CONF=""
+
+for path in \
+    "${HOME}/printer_data/config/moonraker.conf" \
+    "${HOME}/klipper_config/moonraker.conf" \
+    "${HOME}/moonraker.conf"; do
+    if [[ -f "${path}" ]]; then
+        MOONRAKER_CONF="${path}"
+        break
+    fi
+done
+
+if [[ -z "${MOONRAKER_CONF}" ]]; then
+    print_warn "未找到 moonraker.conf，跳过 update_manager 配置"
+else
+    if grep -q "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" 2>/dev/null; then
+        print_info "[update_manager ${UPDATE_NAME}] 已存在，跳过"
+    else
+        print_info "添加 [update_manager ${UPDATE_NAME}] 到 ${MOONRAKER_CONF} ..."
+
+        REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+        REPO_REMOTE=$(cd "${REPO_DIR}" && git remote get-url origin 2>/dev/null || echo "https://gitee.com/NBTP/idm-documents.git")
+
+        cat >> "${MOONRAKER_CONF}" <<EOF
+
+[update_manager ${UPDATE_NAME}]
+type: git_repo
+channel: dev
+path: ${REPO_DIR}
+origin: ${REPO_REMOTE}
+env: ${PYTHON_BIN}
+requirements: requirements.txt
+install_script: flash_web/install.sh
+is_system_service: False
+managed_services: klipper
+info_tags:
+    desc=IDM Flash Web Tool
+EOF
+
+        print_ok "Moonraker update_manager 已配置"
+        print_info "重启 Moonraker 后生效: sudo systemctl restart moonraker"
+    fi
+fi
+
+# -----------------------------------------------------------
+# 3. 安装 systemd 服务
 # -----------------------------------------------------------
 SERVICE_FILE="${SCRIPT_DIR}/idm-flash-web.service"
 SYSTEMD_DIR="/etc/systemd/system"
@@ -107,7 +155,7 @@ else
 fi
 
 # -----------------------------------------------------------
-# 3. 检查服务状态
+# 4. 检查服务状态
 # -----------------------------------------------------------
 echo ""
 print_info "检查服务端口 ${SERVICE_PORT} ..."

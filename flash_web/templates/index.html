@@ -161,12 +161,7 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
         </div>
 
         <input type="hidden" id="flash-mode" value="CAN">
-
-        <label data-i18n="hw_platform">Hardware Platform</label>
-        <select id="hw-platform" onchange="updateFirmwareList()">
-          <option value="stm32" data-i18n="hw_stm32">STM32 (Original IDM)</option>
-          <option value="rp2040" data-i18n="hw_rp2040">RP2040</option>
-        </select>
+        <input type="hidden" id="hw-platform" value="stm32">
 
         <label data-i18n="frequency">Frequency</label>
         <select id="frequency" onchange="updateFirmwareList()">
@@ -297,7 +292,6 @@ function applyTranslations() {
       el.textContent = t(key);
     }
   });
-  updateSelectOptions("hw-platform");
   updateSelectOptions("fw-category");
   updateSelectOptions("dfu-addr");
 }
@@ -407,13 +401,6 @@ document.getElementById("mode-tabs").addEventListener("click", function(e) {
   e.target.classList.add("active");
   document.getElementById("flash-mode").value = e.target.dataset.mode;
   updateDevicePanels();
-
-  if (e.target.dataset.mode === "DFU") {
-    document.getElementById("hw-platform").value = "stm32";
-    document.getElementById("hw-platform").disabled = true;
-  } else {
-    document.getElementById("hw-platform").disabled = false;
-  }
   updateFirmwareList();
 });
 
