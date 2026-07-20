@@ -133,20 +133,18 @@ select_hardware() {
 # 选择频率（CAN模式）
 # -----------------------------------------------------------
 select_frequency() {
-    echo -e "\n${BOLD}请选择通讯频率:${NC}"
-    echo "  1) 1M     (高速 CAN)"
-    echo "  2) 500k   (中速 CAN)"
-    echo "  3) 250k   (低速 CAN)"
-    echo "  4) USB    (USB 通讯)"
+    echo -e "\n${BOLD}请选择 CAN 通讯频率:${NC}"
+    echo "  1) 1M     (高速)"
+    echo "  2) 500k   (中速)"
+    echo "  3) 250k   (低速)"
     echo ""
     while true; do
-        read -r -p "请输入选项 [1-4]: " FREQ
+        read -r -p "请输入选项 [1-3]: " FREQ
         case "${FREQ}" in
             1) FREQ_LABEL="1M"; break;;
             2) FREQ_LABEL="500k"; break;;
             3) FREQ_LABEL="250k"; break;;
-            4) FREQ_LABEL="USB"; break;;
-            *) print_error "无效选项，请输入 1-4";;
+            *) print_error "无效选项，请输入 1-3";;
         esac
     done
     print_info "已选择: ${FREQ_LABEL}"
@@ -579,7 +577,11 @@ advanced_flash() {
         return
     fi
 
-    select_frequency
+    if [[ "${MODE_NAME}" == "USB" ]]; then
+        FREQ_LABEL="USB"
+    else
+        select_frequency
+    fi
     select_fw_type
 
     if ! find_firmware "${HW_PLATFORM}" "${FW_CATEGORY}" "${FREQ_LABEL}"; then
@@ -652,7 +654,11 @@ simple_flash() {
         return
     fi
 
-    select_frequency
+    if [[ "${MODE_NAME}" == "USB" ]]; then
+        FREQ_LABEL="USB"
+    else
+        select_frequency
+    fi
     select_fw_type
 
     if ! find_firmware "${HW_PLATFORM}" "${FW_CATEGORY}" "${FREQ_LABEL}"; then

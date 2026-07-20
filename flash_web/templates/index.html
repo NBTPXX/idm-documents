@@ -163,13 +163,14 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
         <input type="hidden" id="flash-mode" value="CAN">
         <input type="hidden" id="hw-platform" value="stm32">
 
-        <label data-i18n="frequency">Frequency</label>
-        <select id="frequency" onchange="updateFirmwareList()">
-          <option value="1M">1M (High)</option>
-          <option value="500k">500k (Medium)</option>
-          <option value="250k">250k (Low)</option>
-          <option value="USB">USB</option>
-        </select>
+        <div id="freq-group">
+          <label data-i18n="frequency">Frequency</label>
+          <select id="frequency" onchange="updateFirmwareList()">
+            <option value="1M">1M (High)</option>
+            <option value="500k">500k (Medium)</option>
+            <option value="250k">250k (Low)</option>
+          </select>
+        </div>
 
         <label data-i18n="fw_category">Firmware Type</label>
         <select id="fw-category" onchange="updateFirmwareList()">
@@ -390,6 +391,7 @@ function updateDevicePanels() {
   document.getElementById("dev-can-panel").style.display = mode === "CAN" ? "block" : "none";
   document.getElementById("dev-usb-panel").style.display = mode === "USB" ? "block" : "none";
   document.getElementById("dev-dfu-panel").style.display = mode === "DFU" ? "block" : "none";
+  document.getElementById("freq-group").style.display = mode === "CAN" ? "block" : "none";
 }
 
 // ============================================================
@@ -409,7 +411,8 @@ document.getElementById("mode-tabs").addEventListener("click", function(e) {
 // ============================================================
 function updateFirmwareList() {
   const hw = document.getElementById("hw-platform").value;
-  const freq = document.getElementById("frequency").value;
+  const mode = document.getElementById("flash-mode").value;
+  const freq = mode === "USB" ? "USB" : mode === "DFU" ? "" : document.getElementById("frequency").value;
   const cat = document.getElementById("fw-category").value;
   const container = document.getElementById("fw-list");
   const selSpan = document.getElementById("fw-selected");
@@ -542,7 +545,7 @@ async function queryDFU() {
 async function startFlash() {
   const mode = document.getElementById("flash-mode").value;
   const hw = document.getElementById("hw-platform").value;
-  const freq = document.getElementById("frequency").value;
+  const freq = mode === "CAN" ? document.getElementById("frequency").value : (mode === "USB" ? "USB" : "");
   const cat = document.getElementById("fw-category").value;
 
   const selFw = document.querySelector("#fw-list .fw-item.selected");
