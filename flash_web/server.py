@@ -133,7 +133,9 @@ def query_usb_devices():
     for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
         import glob
         devices.extend(glob.glob(pattern))
-    return {"devices": sorted(set(devices))}
+    devices = sorted(set(devices))
+    devices = [d for d in devices if "idm" in d.lower() or "IDM" in os.path.basename(d)]
+    return {"devices": devices}
 
 
 def detect_bootloader_serial(serial_device):
