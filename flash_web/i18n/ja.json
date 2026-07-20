@@ -82,6 +82,7 @@
     "flash_fail": "書込失敗、コード: {code}",
     "err_timeout": "エラー: タイムアウト",
     "cancelled": "キャンセル",
-    "retry_sudo": "sudo で再試行: {cmd}"
+    "retry_sudo": "sudo で再試行: {cmd}",
+    "bl_already": "既に BL モードです: {device}"
   }
 }

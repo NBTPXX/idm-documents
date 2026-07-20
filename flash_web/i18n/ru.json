@@ -82,6 +82,7 @@
     "flash_fail": "Ошибка записи, код: {code}",
     "err_timeout": "Ошибка: таймаут",
     "cancelled": "Отменено",
-    "retry_sudo": "Повтор с sudo: {cmd}"
+    "retry_sudo": "Повтор с sudo: {cmd}",
+    "bl_already": "Устройство уже в режиме bootloader: {device}"
   }
 }

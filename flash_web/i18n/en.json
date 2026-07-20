@@ -82,6 +82,7 @@
     "flash_fail": "Flash failed, exit code: {code}",
     "err_timeout": "Error: operation timed out",
     "cancelled": "Cancelled",
-    "retry_sudo": "Retrying with sudo: {cmd}"
+    "retry_sudo": "Retrying with sudo: {cmd}",
+    "bl_already": "Device already in bootloader mode: {device}"
   }
 }

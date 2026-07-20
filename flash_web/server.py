@@ -139,6 +139,10 @@ def query_usb_devices():
 
 
 def detect_bootloader_serial(serial_device):
+    is_bl = "katapult" in serial_device.lower() or "stm32" in serial_device.lower()
+    if is_bl and os.path.exists(serial_device):
+        return serial_device
+
     before = set()
     for pattern in ["/dev/serial/by-id/*", "/dev/ttyUSB*", "/dev/ttyACM*"]:
         import glob
@@ -350,14 +354,19 @@ def run_flash(task):
                 log(_t(lang, "err_no_serial"))
                 return
 
-            log(_t(lang, "enter_bl", device=serial_device))
-            enter_cmd = [
-                KLIPPER_ENV, "-c",
-                f"import flash_usb as u; u.enter_bootloader('{serial_device}')"
-            ]
-            subprocess.run(enter_cmd, cwd=os.path.join(KLIPPER_DIR, "scripts"),
-                           capture_output=True, timeout=15)
-            time.sleep(3)
+            is_bl = "katapult" in serial_device.lower() or "stm32" in serial_device.lower()
+
+            if not is_bl:
+                log(_t(lang, "enter_bl", device=serial_device))
+                enter_cmd = [
+                    KLIPPER_ENV, "-c",
+                    f"import flash_usb as u; u.enter_bootloader('{serial_device}')"
+                ]
+                subprocess.run(enter_cmd, cwd=os.path.join(KLIPPER_DIR, "scripts"),
+                               capture_output=True, timeout=15)
+                time.sleep(3)
+            else:
+                log(_t(lang, "bl_already", device=serial_device))
 
             bootloader_serial = params.get("bootloader_serial", "").strip()
             if not bootloader_serial:

@@ -572,6 +572,13 @@ async function detectBootloader() {
   const btn = document.querySelector("[onclick='detectBootloader()']");
   btn.disabled = true;
   btn.textContent = t("dev_boot_detecting");
+  if (/katapult|stm32/i.test(serial)) {
+    document.getElementById("boot-serial").value = serial;
+    logConsole("success", "Already in BL: " + serial);
+    btn.disabled = false;
+    btn.textContent = t("dev_boot_detect");
+    return;
+  }
   logConsole("info", "Entering Bootloader: " + serial);
   try {
     const r = await fetch("/api/devices/usb/bootloader?serial=" + encodeURIComponent(serial));
