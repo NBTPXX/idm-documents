@@ -7,6 +7,7 @@ IDM 固件刷写 Web 服务
 import json
 import os
 import re
+import struct
 import subprocess
 import threading
 import time
