@@ -90,8 +90,7 @@ def detect_environment():
 
     try:
         result = subprocess.run(
-            ["ip", "-o", "link", "show"],
-            capture_output=True, text=True, timeout=5
+            ["ip", "-o", "link", "show"], capture_output=True, text=True, timeout=5
         )
         match = re.search(r"can\d+", result.stdout)
         if match:
@@ -128,17 +127,25 @@ def query_can_devices():
         if env["bootloader"] == "katapult":
             result = subprocess.run(
                 [KLIPPER_ENV, env["flash_tool"], "-i", can_if, "-q"],
-                capture_output=True, text=True, timeout=30
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
         else:
             result = subprocess.run(
                 [KLIPPER_ENV, env["flash_tool"], "-q"],
-                capture_output=True, text=True, timeout=30
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
         output = result.stdout + result.stderr
         uuids = re.findall(r"[0-9a-f]{16,}", output)
-        return {"devices": list(set(uuids)), "raw_output": output, "can_interface": can_if}
+        return {
+            "devices": list(set(uuids)),
+            "raw_output": output,
+            "can_interface": can_if,
+        }
     except Exception as e:
         return {"devices": [], "error": str(e)}
 
@@ -164,13 +171,13 @@ def detect_bootloader_serial(serial_device, try_enter=True):
     before = _scan_serial_devices()
 
     enter_cmd = [
-        KLIPPER_ENV, "-c",
-        f"import flash_usb as u; u.enter_bootloader('{serial_device}')"
+        KLIPPER_ENV,
+        "-c",
+        f"import flash_usb as u; u.enter_bootloader('{serial_device}')",
     ]
     try:
         klipper_scripts = os.path.join(KLIPPER_DIR, "scripts")
-        subprocess.run(enter_cmd, cwd=klipper_scripts,
-                       capture_output=True, timeout=15)
+        subprocess.run(enter_cmd, cwd=klipper_scripts, capture_output=True, timeout=15)
         time.sleep(3)
     except Exception:
         pass
@@ -196,7 +203,9 @@ def _run_dfutil(args, timeout=300):
     for try_sudo in [False, True]:
         cmd = (["sudo", "-n"] if try_sudo else []) + ["dfu-util"] + args
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout
+            )
             if result.returncode == 0:
                 return result
             if try_sudo:
@@ -239,7 +248,9 @@ def _scan_firmware_dir(base_dir, is_deployer=False, is_rp2040=False):
             current_files.append({"name": f.name, "path": str(f)})
 
     if current_files:
-        versions.append({"label": "最新版", "files": sorted(current_files, key=lambda x: x["name"])})
+        versions.append(
+            {"label": "最新版", "files": sorted(current_files, key=lambda x: x["name"])}
+        )
 
     old_dir = base_dir / "old"
     if old_dir.exists() and old_dir.is_dir():
@@ -249,7 +260,10 @@ def _scan_firmware_dir(base_dir, is_deployer=False, is_rp2040=False):
                 for f in version_dir.rglob("*"):
                     if f.is_file() and f.suffix in (".bin", ".uf2"):
                         if is_rp2040:
-                            is_dep = "deployer" in f.name.lower() or "canboot_" in f.name.lower()
+                            is_dep = (
+                                "deployer" in f.name.lower()
+                                or "canboot_" in f.name.lower()
+                            )
                             is_main = "idm_" in f.name.lower() or "IDM_" in f.name
                             if is_deployer and not is_dep:
                                 continue
@@ -257,10 +271,12 @@ def _scan_firmware_dir(base_dir, is_deployer=False, is_rp2040=False):
                                 continue
                         ver_files.append({"name": f.name, "path": str(f)})
                 if ver_files:
-                    versions.append({
-                        "label": version_dir.name,
-                        "files": sorted(ver_files, key=lambda x: x["name"]),
-                    })
+                    versions.append(
+                        {
+                            "label": version_dir.name,
+                            "files": sorted(ver_files, key=lambda x: x["name"]),
+                        }
+                    )
 
     return versions
 
@@ -291,6 +307,7 @@ def list_firmware(fw_base=None):
 I18N_DIR = Path(__file__).resolve().parent / "i18n"
 _BACKEND_CACHE = {}
 
+
 def _load_i18n(lang):
     if lang in _BACKEND_CACHE:
         return _BACKEND_CACHE[lang]
@@ -306,6 +323,7 @@ def _load_i18n(lang):
     _BACKEND_CACHE[lang] = {}
     return {}
 
+
 def _t(lang, key, **kwargs):
     msgs = _load_i18n(lang) or _load_i18n("zh") or _load_i18n("en")
     s = msgs.get(key, key)
@@ -317,23 +335,24 @@ def _t(lang, key, **kwargs):
 # ============================================================
 # Katapult 协议
 # ============================================================
-KATAPULT_HEADER = b'\x01\x88'
-KATAPULT_TRAILER = b'\x99\x03'
+KATAPULT_HEADER = b"\x01\x88"
+KATAPULT_TRAILER = b"\x99\x03"
 
 
 def crc16_ccitt(buf):
-    crc = 0xffff
+    crc = 0xFFFF
     for b in buf:
-        b ^= crc & 0xff
-        b ^= (b & 0x0f) << 4
+        b ^= crc & 0xFF
+        b ^= (b & 0x0F) << 4
         crc = ((b << 8) | (crc >> 8)) ^ (b >> 4) ^ (b << 3)
     return crc & 0xFFFF
 
 
-def build_katapult_cmd(cmd, payload=b''):
+def build_katapult_cmd(cmd, payload=b""):
     wcnt = (len(payload) // 4) & 0xFF
     out = bytearray(KATAPULT_HEADER)
-    out.append(cmd); out.append(wcnt)
+    out.append(cmd)
+    out.append(wcnt)
     out.extend(payload)
     crc_val = crc16_ccitt(out[2:])
     out.extend(struct.pack("<H", crc_val))
@@ -345,8 +364,8 @@ def build_katapult_cmd(cmd, payload=b''):
 # CAN 传输层 (Linux socket CAN)
 # ============================================================
 CAN_FRAME_FMT = "<IB3x8s"
-CAN_ADMIN_ID = 0x3f0
-CAN_ADMIN_RESP_ID = 0x3f1
+CAN_ADMIN_ID = 0x3F0
+CAN_ADMIN_RESP_ID = 0x3F1
 CAN_NODEID_OFFSET = 128
 
 
@@ -358,7 +377,7 @@ def _can_open(interface):
 
 def _can_send(sock, can_id, data):
     payload_len = min(len(data), 8)
-    padded = data[:8].ljust(8, b'\x00')
+    padded = data[:8].ljust(8, b"\x00")
     sock.send(struct.pack(CAN_FRAME_FMT, can_id, payload_len, padded))
 
 
@@ -454,7 +473,16 @@ def run_flash(task):
                 return
 
             if bootloader == "katapult":
-                cmd = [KLIPPER_ENV, flash_tool, "-i", can_interface, "-f", fw_file, "-u", can_uuid]
+                cmd = [
+                    KLIPPER_ENV,
+                    flash_tool,
+                    "-i",
+                    can_interface,
+                    "-f",
+                    fw_file,
+                    "-u",
+                    can_uuid,
+                ]
             else:
                 cmd = [KLIPPER_ENV, flash_tool, "-f", fw_file, "-u", can_uuid]
 
@@ -473,8 +501,17 @@ def run_flash(task):
                 cmd = [KLIPPER_ENV, flash_tool, "-f", fw_file, "-d", bootloader_serial]
 
         elif mode == "DFU":
-            dfu_args = ["-d", ",0483:df11", "-R", "-a", "0",
-                        "-s", f"{dfu_addr}:leave", "-D", fw_file]
+            dfu_args = [
+                "-d",
+                ",0483:df11",
+                "-R",
+                "-a",
+                "0",
+                "-s",
+                f"{dfu_addr}:leave",
+                "-D",
+                fw_file,
+            ]
             cmd = ["dfu-util"] + dfu_args
             sudo_cmd = ["sudo", "-n", "dfu-util"] + dfu_args
 
@@ -486,8 +523,13 @@ def run_flash(task):
         log(_t(lang, "exec_cmd", cmd=" ".join(cmd)))
 
         def _run(c):
-            process = subprocess.Popen(c, stdout=subprocess.PIPE,
-                                       stderr=subprocess.STDOUT, text=True, bufsize=1)
+            process = subprocess.Popen(
+                c,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
             task.process = process
             for line in iter(process.stdout.readline, ""):
                 line = line.rstrip()
@@ -526,6 +568,7 @@ MOONRAKER_URL = os.environ.get("MOONRAKER_URL", "http://localhost:7125")
 def moonraker_request(endpoint):
     import urllib.request
     import urllib.error
+
     try:
         url = f"{MOONRAKER_URL}{endpoint}"
         req = urllib.request.Request(url)
@@ -618,7 +661,9 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
             self.send_json(moonraker_request("/server/info"))
 
         elif path == "/api/moonraker/printer":
-            self.send_json(moonraker_request("/printer/objects/query?toolhead&heater_bed&extruder"))
+            self.send_json(
+                moonraker_request("/printer/objects/query?toolhead&heater_bed&extruder")
+            )
 
         # 静态文件
         elif path.startswith("/i18n/"):
@@ -682,12 +727,15 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
         elif path == "/api/devices/usb/enter-bl":
             serial = body_data.get("serial_device", "")
             if not serial:
-                self.send_json({"success": False, "error": "missing serial_device"}, 400)
+                self.send_json(
+                    {"success": False, "error": "missing serial_device"}, 400
+                )
                 return
             try:
                 cmd = [
-                    KLIPPER_ENV, "-c",
-                    f"import flash_usb as u; u.enter_bootloader('{serial}')"
+                    KLIPPER_ENV,
+                    "-c",
+                    f"import flash_usb as u; u.enter_bootloader('{serial}')",
                 ]
                 cwd = os.path.join(KLIPPER_DIR, "scripts")
                 if not os.path.isdir(cwd):
@@ -700,19 +748,24 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
         elif path == "/api/devices/usb/exit-bl":
             serial = body_data.get("serial_device", "")
             if not serial:
-                self.send_json({"success": False, "error": "missing serial_device"}, 400)
+                self.send_json(
+                    {"success": False, "error": "missing serial_device"}, 400
+                )
                 return
             try:
                 import serial as pyserial
 
                 s = pyserial.Serial(baudrate=250000, timeout=0, exclusive=True)
-                s.port = serial; s.open()
+                s.port = serial
+                s.open()
                 s.reset_input_buffer()
-                s.write(build_katapult_cmd(0x90)); s.flush()
+                s.write(build_katapult_cmd(0x90))
+                s.flush()
                 time.sleep(0.3)
                 s.reset_input_buffer()
-                s.write(build_katapult_cmd(0x11)); s.flush()
-                raw = b''
+                s.write(build_katapult_cmd(0x11))
+                s.flush()
+                raw = b""
                 deadline = time.time() + 3
                 while time.time() < deadline:
                     chunk = s.read(4096)
@@ -721,10 +774,13 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                         if KATAPULT_TRAILER in raw and raw.find(KATAPULT_HEADER) >= 0:
                             break
                     time.sleep(0.05)
-                s.write(build_katapult_cmd(0x15)); s.flush()
+                s.write(build_katapult_cmd(0x15))
+                s.flush()
                 time.sleep(0.3)
-                try: s.close()
-                except Exception: pass
+                try:
+                    s.close()
+                except Exception:
+                    pass
                 time.sleep(1)
                 self.send_json({"success": True})
             except Exception as e:
@@ -742,8 +798,10 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                     uuid_bytes = uuid_bytes[:6]
                 sock = _can_open(can_interface)
                 _can_send(sock, CAN_ADMIN_ID, bytes([0x02]) + uuid_bytes)
-                try: sock.close()
-                except Exception: pass
+                try:
+                    sock.close()
+                except Exception:
+                    pass
                 time.sleep(2)
                 self.send_json({"success": True})
             except Exception as e:
