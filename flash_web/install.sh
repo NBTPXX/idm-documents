@@ -84,11 +84,7 @@ type: git_repo
 channel: dev
 path: ${REPO_DIR}
 origin: ${REPO_REMOTE}
-env: ${PYTHON_BIN}
-requirements: requirements.txt
-install_script: flash_web/install.sh
 is_system_service: False
-managed_services: klipper
 info_tags:
     desc=IDM Flash Web Tool
 EOF
