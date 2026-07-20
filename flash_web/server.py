@@ -134,7 +134,7 @@ def query_usb_devices():
         import glob
         devices.extend(glob.glob(pattern))
     devices = sorted(set(devices))
-    devices = [d for d in devices if "idm" in d.lower() or "IDM" in os.path.basename(d)]
+    devices = [d for d in devices if "idm" in d.lower()]
     return {"devices": devices}
 
 
