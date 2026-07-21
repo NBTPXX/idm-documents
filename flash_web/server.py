@@ -31,6 +31,7 @@ FW_DIR_CANBOOT = FW_BASE / "Canboot通讯频率覆写用固件(canboot deployer 
 FW_DIR_RP2040 = FW_BASE / "rp2040"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 LIB_DIR = Path(__file__).resolve().parent / "lib"
+WIKI_DIR = Path(__file__).resolve().parent / "wiki"
 FLASH_TOOL_PATH = str(LIB_DIR / "flashtool.py")
 FLASH_CAN_PATH = str(LIB_DIR / "flash_can.py")
 
@@ -675,6 +676,24 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
             self.send_json(
                 moonraker_request("/printer/objects/query?toolhead&heater_bed&extruder")
             )
+
+        # Wiki
+        elif path == "/wiki":
+            wiki_path = TEMPLATES_DIR / "wiki.html"
+            if wiki_path.exists():
+                self.send_html(wiki_path.read_text(encoding="utf-8"))
+            else:
+                self.send_json({"error": "wiki.html not found"}, 404)
+
+        elif path.startswith("/wiki/") and path.endswith(".md"):
+            wiki_file = WIKI_DIR / path[len("/wiki/"):]
+            if wiki_file.exists() and wiki_file.suffix == ".md":
+                self.send_response(200)
+                self.send_header("Content-Type", "text/markdown; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(wiki_file.read_bytes())
+            else:
+                self.send_json({"error": "not found"}, 404)
 
         # 静态文件
         elif path.startswith("/i18n/"):
