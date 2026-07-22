@@ -591,7 +591,6 @@ class CanSocket(BaseSocket):
             else:
                 intf = self._can_interface
                 self._uuid = int(args.uuid, 16)
-                self._search_canbus_bridge()
                 output_line(f"Connecting to CAN UUID {args.uuid} on interface {intf}")
         self.cansock = socket.socket(socket.PF_CAN, socket.SOCK_RAW,
                                      socket.CAN_RAW)
@@ -752,7 +751,10 @@ class CanSocket(BaseSocket):
         for item in sysfs_usb_path.iterdir():
             if not item.joinpath("bDeviceClass").is_file():
                 continue
-            usb_info = get_usb_info(item)
+            try:
+                usb_info = get_usb_info(item)
+            except OSError:
+                continue
             if (
                 usb_info["usb_id"] != GS_CAN_USB_ID or
                 usb_info["manufacturer"] != "klipper"
