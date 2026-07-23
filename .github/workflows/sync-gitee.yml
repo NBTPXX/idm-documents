@@ -18,6 +18,7 @@ jobs:
         env:
           GIT_TERMINAL_PROMPT: 0
         run: |
+          git config --global credential.helper '!f() { echo ""; }; f'
           git remote add gitee https://gitee.com/NBTP/idm-documents.git
           git fetch gitee master
           git checkout -B master gitee/master
