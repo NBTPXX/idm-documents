@@ -1,0 +1,24 @@
+name: Sync from Gitee
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: master
+
+      - name: Sync from Gitee
+        run: |
+          git remote add gitee https://gitee.com/NBTP/idm-documents.git
+          git fetch gitee develop master
+          for branch in develop master; do
+            git checkout -B $branch gitee/$branch
+            git push origin $branch --force
+          done
