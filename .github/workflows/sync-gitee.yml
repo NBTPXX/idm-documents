@@ -19,9 +19,11 @@ jobs:
       - name: Sync from Gitee
         env:
           GIT_TERMINAL_PROMPT: 0
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           git config --global credential.helper '!f() { echo ""; }; f'
           git remote add gitee https://gitee.com/NBTP/idm-documents.git
           git fetch gitee master
           git checkout -B master gitee/master
-          git push origin master --force
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" master --force
