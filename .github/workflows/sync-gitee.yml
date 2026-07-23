@@ -17,8 +17,6 @@ jobs:
       - name: Sync from Gitee
         run: |
           git remote add gitee https://gitee.com/NBTP/idm-documents.git
-          git fetch gitee develop master
-          for branch in develop master; do
-            git checkout -B $branch gitee/$branch
-            git push origin $branch --force
-          done
+          git fetch gitee master
+          git checkout -B master gitee/master
+          git push origin master --force
