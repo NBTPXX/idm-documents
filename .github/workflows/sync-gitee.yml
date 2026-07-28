@@ -5,25 +5,22 @@ on:
     - cron: "*/30 * * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-from-gitee
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: master
-
-      - name: Sync from Gitee
+      - name: Sync master and develop
         env:
-          GIT_TERMINAL_PROMPT: 0
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config --global credential.helper '!f() { echo ""; }; f'
-          git remote add gitee https://gitee.com/NBTP/idm-documents.git
-          git fetch gitee master
-          git checkout -B master gitee/master
-          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" master --force
+          git clone --bare https://gitee.com/NBTP/idm-documents.git source.git
+          git -C source.git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" refs/heads/master:refs/heads/master refs/heads/develop:refs/heads/develop
+
