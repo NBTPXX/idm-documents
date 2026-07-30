@@ -46,6 +46,8 @@
   "log_detecting": "Проверка окружения...",
   "log_can_query": "Поиск CAN устройств...",
   "log_can_found": "Найдено {count}: {uuids}",
+  "log_katapult_uuids": "UUID загрузчика Katapult (для прошивки): {uuids}",
+  "log_klipper_uuids": "UUID работающего MCU Klipper (для canbus_uuid): {uuids}",
   "log_can_none": "CAN устройства не найдены",
   "log_usb_query": "Поиск USB устройств...",
   "log_usb_found": "Найдено {count}:",

@@ -46,6 +46,8 @@
   "log_detecting": "正在检测运行环境...",
   "log_can_query": "查询 CAN 设备...",
   "log_can_found": "找到 {count} 个设备: {uuids}",
+  "log_katapult_uuids": "Katapult 引导器 UUID（用于刷写）：{uuids}",
+  "log_klipper_uuids": "Klipper 运行中 MCU UUID（用于 canbus_uuid）：{uuids}",
   "log_can_none": "未检测到 CAN 设备",
   "log_usb_query": "查询 USB 串口设备...",
   "log_usb_found": "找到 {count} 个设备:",

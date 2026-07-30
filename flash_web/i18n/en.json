@@ -46,6 +46,8 @@
   "log_detecting": "Detecting environment...",
   "log_can_query": "Querying CAN devices...",
   "log_can_found": "Found {count} device(s): {uuids}",
+  "log_katapult_uuids": "Katapult bootloader UUIDs (for flashing): {uuids}",
+  "log_klipper_uuids": "Running Klipper MCU UUIDs (for canbus_uuid): {uuids}",
   "log_can_none": "No CAN devices found",
   "log_usb_query": "Querying USB serial devices...",
   "log_usb_found": "Found {count} device(s):",

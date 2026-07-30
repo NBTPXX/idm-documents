@@ -46,6 +46,8 @@
   "log_detecting": "環境を検出中...",
   "log_can_query": "CAN デバイス検索...",
   "log_can_found": "{count} 台検出: {uuids}",
+  "log_katapult_uuids": "Katapult ブートローダー UUID（書込用）：{uuids}",
+  "log_klipper_uuids": "稼働中 Klipper MCU UUID（canbus_uuid 用）：{uuids}",
   "log_can_none": "CAN デバイスなし",
   "log_usb_query": "USB シリアル検索...",
   "log_usb_found": "{count} 台検出:",

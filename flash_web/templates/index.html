@@ -465,6 +465,7 @@
                     Query
                   </button>
                 </div>
+                <div id="can-query-results" class="hint" style="margin-top: 8px; white-space: pre-line"></div>
               </div>
               <div id="dev-usb-panel" style="display: none">
                 <label data-i18n="dev_serial">Serial Port</label>
@@ -942,16 +943,23 @@
             logConsole("error", tbe(d.error));
             return;
           }
-          if (d.devices.length > 0) {
-            document.getElementById("can-uuid").value = d.devices[0];
+          const katapultUuids = d.katapult_uuids || d.devices || [];
+          const klipperUuids = d.klipper_uuids || [];
+          const resultEl = document.getElementById("can-query-results");
+          resultEl.textContent = [
+            t("log_katapult_uuids", { uuids: katapultUuids.join(", ") || t("log_can_none") }),
+            t("log_klipper_uuids", { uuids: klipperUuids.join(", ") || t("log_can_none") }),
+          ].join("\n");
+          if (katapultUuids.length > 0) {
+            document.getElementById("can-uuid").value = katapultUuids[0];
             logConsole(
               "success",
               t("log_can_found", {
-                count: String(d.devices.length),
-                uuids: d.devices.join(", "),
+                count: String(katapultUuids.length),
+                uuids: katapultUuids.join(", "),
               }),
             );
-          } else {
+          } else if (klipperUuids.length === 0) {
             logConsole("warn", t("log_can_none"));
           }
           if (d.raw_output)

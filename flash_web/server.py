@@ -136,10 +136,33 @@ def query_can_devices():
         )
 
         output = "$ " + " ".join(cmd) + "\n" + result.stdout + result.stderr
-        uuids = re.findall(r"[0-9a-f]{12,}", output)
+        uuids = re.findall(r"[0-9a-fA-F]{12,}", output)
+        katapult_uuids = sorted(set(uuids))
+        klipper_uuids = []
+        klipper_output = ""
+        canbus_query = os.path.join(KLIPPER_DIR, "scripts", "canbus_query.py")
+        if os.path.exists(canbus_query):
+            try:
+                klipper_cmd = [KLIPPER_ENV, canbus_query, can_if]
+                klipper_result = subprocess.run(
+                    klipper_cmd, capture_output=True, text=True, timeout=30,
+                )
+                klipper_output = (
+                    "$ " + " ".join(klipper_cmd) + "\n"
+                    + klipper_result.stdout + klipper_result.stderr
+                )
+                klipper_uuids = sorted(set(re.findall(
+                    r"canbus_uuid=([0-9a-fA-F]{12})", klipper_output,
+                )))
+            except Exception as error:
+                klipper_output = f"Klipper CAN query failed: {error}\n"
+        else:
+            klipper_output = f"Klipper CAN query script not found: {canbus_query}\n"
         return {
-            "devices": list(set(uuids)),
-            "raw_output": output,
+            "devices": katapult_uuids,
+            "katapult_uuids": katapult_uuids,
+            "klipper_uuids": klipper_uuids,
+            "raw_output": output + klipper_output,
             "can_interface": can_if,
         }
     except Exception as e:
