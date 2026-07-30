@@ -979,7 +979,7 @@
             const row = document.createElement(device.uuid ? "button" : "div");
             row.className = device.uuid ? "can-device-select" : "can-device-info";
             if (device.uuid) row.type = "button";
-            const inUse = device.source === "runtime" ? "⭕" : "❌";
+            const inUse = device.in_use ? "⭕" : "❌";
             const details = [
               `${t("can_device_name")}: ${device.name || t("can_unknown")}`,
               `${t("can_device_application")}: ${device.application || t("can_unknown")}`,

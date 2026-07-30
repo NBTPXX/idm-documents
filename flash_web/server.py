@@ -174,12 +174,44 @@ def query_can_devices():
             "mcu_version": status.get("mcu_version", ""),
         })
 
+    merged_devices = []
+    by_uuid = {}
+    for device in device_rows:
+        uuid = device["uuid"]
+        if not uuid:
+            merged_devices.append(device)
+            continue
+        existing = by_uuid.get(uuid)
+        if existing is None:
+            by_uuid[uuid] = device
+            merged_devices.append(device)
+            continue
+        if existing["source"] == "unassigned" and device["source"] == "runtime":
+            existing.update({
+                "name": device["name"],
+                "mcu_model": device["mcu_model"],
+                "mcu_version": device["mcu_version"],
+                "in_use": True,
+            })
+        elif existing["source"] == "runtime" and device["source"] == "unassigned":
+            device.update({
+                "name": existing["name"],
+                "mcu_model": existing["mcu_model"],
+                "mcu_version": existing["mcu_version"],
+                "in_use": True,
+            })
+            by_uuid[uuid] = device
+            merged_devices[merged_devices.index(existing)] = device
+
+    for device in merged_devices:
+        device.setdefault("in_use", device["source"] == "runtime")
+
     katapult_uuids = sorted({
-        device["uuid"] for device in device_rows
+        device["uuid"] for device in merged_devices
         if device["application"].lower() == "katapult" and device["uuid"]
     })
     klipper_uuids = sorted({
-        device["uuid"] for device in device_rows
+        device["uuid"] for device in merged_devices
         if device["application"].lower() == "klipper" and device["uuid"]
     })
     raw_output = json.dumps({
@@ -192,7 +224,7 @@ def query_can_devices():
         "devices": katapult_uuids,
         "katapult_uuids": katapult_uuids,
         "klipper_uuids": klipper_uuids,
-        "can_devices": device_rows,
+        "can_devices": merged_devices,
         "raw_output": raw_output,
         "can_interface": can_if,
     }
