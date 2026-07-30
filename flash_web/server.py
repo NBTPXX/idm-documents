@@ -18,7 +18,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlencode
 import mimetypes
 
 # ============================================================
@@ -121,52 +121,85 @@ def _scan_serial_devices():
 
 def query_can_devices():
     env = detect_environment()
-    if not env["flash_tool"] or not env["bootloader"]:
-        return {"devices": [], "error": "_backend.err_no_tool"}
-
     can_if = env["can_interface"] or "can0"
-    is_local = str(LIB_DIR) in str(env["flash_tool"])
-    python_exe = sys.executable if is_local else KLIPPER_ENV
 
-    try:
-        cmd = [python_exe, env["flash_tool"], "-i", can_if, "-q"]
+    can_response = moonraker_request(
+        "/machine/peripherals/canbus?" + urlencode({"interface": can_if})
+    )
+    if "error" in can_response:
+        return {"devices": [], "error": can_response["error"]}
 
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=30,
-        )
-
-        output = "$ " + " ".join(cmd) + "\n" + result.stdout + result.stderr
-        uuids = re.findall(r"[0-9a-fA-F]{12,}", output)
-        katapult_uuids = sorted(set(uuids))
-        klipper_uuids = []
-        klipper_output = ""
-        canbus_query = os.path.join(KLIPPER_DIR, "scripts", "canbus_query.py")
-        if os.path.exists(canbus_query):
-            try:
-                klipper_cmd = [KLIPPER_ENV, canbus_query, can_if]
-                klipper_result = subprocess.run(
-                    klipper_cmd, capture_output=True, text=True, timeout=30,
-                )
-                klipper_output = (
-                    "$ " + " ".join(klipper_cmd) + "\n"
-                    + klipper_result.stdout + klipper_result.stderr
-                )
-                klipper_uuids = sorted(set(re.findall(
-                    r"canbus_uuid=([0-9a-fA-F]{12})", klipper_output,
-                )))
-            except Exception as error:
-                klipper_output = f"Klipper CAN query failed: {error}\n"
-        else:
-            klipper_output = f"Klipper CAN query script not found: {canbus_query}\n"
-        return {
-            "devices": katapult_uuids,
-            "katapult_uuids": katapult_uuids,
-            "klipper_uuids": klipper_uuids,
-            "raw_output": output + klipper_output,
-            "can_interface": can_if,
+    can_result = can_response.get("result", can_response)
+    unassigned = can_result.get("can_uuids", [])
+    device_rows = [
+        {
+            "name": "",
+            "uuid": device.get("uuid", "").lower(),
+            "application": device.get("application", "Unknown"),
+            "mcu_model": "",
+            "source": "unassigned",
         }
-    except Exception as e:
-        return {"devices": [], "error": str(e)}
+        for device in unassigned
+    ]
+
+    config_response = moonraker_request("/printer/objects/query?configfile")
+    objects_response = moonraker_request("/printer/objects/list")
+    config_result = config_response.get("result", config_response)
+    objects_result = objects_response.get("result", objects_response)
+    config = config_result.get("status", {}).get("configfile", {}).get("config", {})
+    mcu_objects = [
+        name for name in objects_result.get("objects", [])
+        if name == "mcu" or name.startswith("mcu ")
+    ]
+    status_response = moonraker_request(
+        "/printer/objects/query?" + urlencode({name: "" for name in mcu_objects})
+    ) if mcu_objects else {}
+    statuses = (
+        status_response.get("result", status_response)
+        .get("status", {})
+    )
+
+    for section, settings in config.items():
+        if section != "mcu" and not section.startswith("mcu "):
+            continue
+        status = statuses.get(section, {})
+        constants = status.get("mcu_constants", {})
+        model = next((
+            str(constants[key]) for key in (
+                "MCU", "MCU_TYPE", "CONFIG_MCU", "CHIP", "CHIP_TYPE"
+            ) if constants.get(key)
+        ), "")
+        device_rows.append({
+            "name": section[4:] if section.startswith("mcu ") else "mcu",
+            "uuid": str(settings.get("canbus_uuid", "")).lower(),
+            "application": "Klipper",
+            "mcu_model": model,
+            "source": "configured",
+            "mcu_version": status.get("mcu_version", ""),
+        })
+
+    katapult_uuids = sorted({
+        device["uuid"] for device in device_rows
+        if device["application"].lower() == "katapult" and device["uuid"]
+    })
+    klipper_uuids = sorted({
+        device["uuid"] for device in device_rows
+        if device["application"].lower() == "klipper" and device["uuid"]
+    })
+    raw_output = json.dumps({
+        "canbus": can_response,
+        "configfile": config_response,
+        "mcu_objects": objects_response,
+        "mcu_status": status_response,
+    }, ensure_ascii=False, indent=2)
+    return {
+        "devices": katapult_uuids,
+        "katapult_uuids": katapult_uuids,
+        "klipper_uuids": klipper_uuids,
+        "can_devices": device_rows,
+        "raw_output": raw_output,
+        "can_interface": can_if,
+    }
 
 
 def query_usb_devices():

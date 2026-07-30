@@ -934,32 +934,43 @@
       // ============================================================
       // 设备查询
       // ============================================================
-      function renderCanUuidGroup(container, label, uuids) {
-        const group = document.createElement("div");
-        const title = document.createElement("div");
-        title.textContent = label;
-        group.appendChild(title);
-
-        if (uuids.length === 0) {
+      function renderCanDevices(container, devices) {
+        if (devices.length === 0) {
           const empty = document.createElement("span");
           empty.textContent = t("log_can_none");
-          group.appendChild(empty);
+          container.appendChild(empty);
         } else {
-          uuids.forEach((uuid) => {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "btn btn-secondary btn-sm";
-            button.style.margin = "4px 4px 0 0";
-            button.textContent = uuid;
-            button.title = t("can_uuid_select_hint");
-            button.onclick = () => {
-              document.getElementById("can-uuid").value = uuid;
-              logConsole("success", t("log_can_selected", { uuid }));
-            };
-            group.appendChild(button);
+          devices.forEach((device) => {
+            const row = document.createElement("div");
+            row.style.marginTop = "8px";
+            const details = [
+              `${t("can_device_source")}: ${device.source === "configured" ? t("can_source_configured") : t("can_source_unassigned")}`,
+              `${t("can_device_application")}: ${device.application || t("can_unknown")}`,
+              `${t("can_device_name")}: ${device.name || t("can_unknown")}`,
+              `${t("can_device_model")}: ${device.mcu_model || t("can_unknown")}`,
+            ];
+            if (device.mcu_version) details.push(`${t("can_device_version")}: ${device.mcu_version}`);
+
+            const info = document.createElement("div");
+            info.textContent = details.join(" | ");
+            row.appendChild(info);
+
+            if (device.uuid) {
+              const button = document.createElement("button");
+              button.type = "button";
+              button.className = "btn btn-secondary btn-sm";
+              button.style.marginTop = "4px";
+              button.textContent = device.uuid;
+              button.title = t("can_uuid_select_hint");
+              button.onclick = () => {
+                document.getElementById("can-uuid").value = device.uuid;
+                logConsole("success", t("log_can_selected", { uuid: device.uuid }));
+              };
+              row.appendChild(button);
+            }
+            container.appendChild(row);
           });
         }
-        container.appendChild(group);
       }
 
       async function queryCAN() {
@@ -971,22 +982,23 @@
             logConsole("error", tbe(d.error));
             return;
           }
-          const katapultUuids = d.katapult_uuids || d.devices || [];
-          const klipperUuids = d.klipper_uuids || [];
+          const canDevices = d.can_devices || [];
           const resultEl = document.getElementById("can-query-results");
           resultEl.replaceChildren();
-          renderCanUuidGroup(resultEl, t("can_katapult_uuids"), katapultUuids);
-          renderCanUuidGroup(resultEl, t("can_klipper_uuids"), klipperUuids);
-          if (katapultUuids.length > 0) {
-            document.getElementById("can-uuid").value = katapultUuids[0];
+          renderCanDevices(resultEl, canDevices);
+          const defaultDevice = canDevices.find(
+            (device) => device.source === "unassigned" && device.application === "Katapult" && device.uuid,
+          ) || canDevices.find((device) => device.uuid);
+          if (defaultDevice) {
+            document.getElementById("can-uuid").value = defaultDevice.uuid;
             logConsole(
               "success",
               t("log_can_found", {
-                count: String(katapultUuids.length),
-                uuids: katapultUuids.join(", "),
+                count: String(canDevices.length),
+                uuids: canDevices.map((device) => device.uuid).filter(Boolean).join(", "),
               }),
             );
-          } else if (klipperUuids.length === 0) {
+          } else {
             logConsole("warn", t("log_can_none"));
           }
           if (d.raw_output)

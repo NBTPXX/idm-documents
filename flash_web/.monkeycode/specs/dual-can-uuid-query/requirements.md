@@ -9,10 +9,12 @@
 
 ### 需求 1：双通道查询
 
-**用户故事：** 作为打印机用户，我希望同时查看两类 CAN UUID，并选择任一查询结果用于刷写。
+**用户故事：** 作为打印机用户，我希望通过 Moonraker 查看 CAN 节点与 Klipper MCU 配置，并选择查询到的 UUID 用于刷写。
 
-1. WHEN 用户查询 CAN 设备，刷写页面 SHALL 返回 Katapult UUID 和 Klipper MCU UUID 两个分组。
-2. WHEN 存在 Katapult UUID，刷写页面 SHALL 将第一个 Katapult UUID 填入刷写输入框。
-3. WHEN 查询结果包含 Katapult UUID 或 Klipper MCU UUID，刷写页面 SHALL 为每个 UUID 提供选择控件。
-4. WHEN 用户选择任一 UUID，刷写页面 SHALL 将该 UUID 填入刷写输入框。
-5. IF 任一分组查询失败，刷写页面 SHALL 展示另一分组的可用结果和原始命令输出。
+1. WHEN 用户查询 CAN 设备，刷写页面 SHALL 调用 Moonraker CAN 接口并显示每个未分配节点的 UUID 与 application。
+2. WHEN 用户查询 CAN 设备，刷写页面 SHALL 读取 Klipper `configfile` 对象并显示每个 MCU 配置的 UUID。
+3. WHEN Moonraker 提供 MCU 状态常量，刷写页面 SHALL 显示 MCU 型号。
+4. WHEN Moonraker 提供 MCU 固件版本，刷写页面 SHALL 显示 MCU 固件版本。
+5. WHEN 查询结果包含 UUID，刷写页面 SHALL 为该 UUID 提供选择控件。
+6. WHEN 用户选择任一 UUID，刷写页面 SHALL 将该 UUID 填入刷写输入框。
+7. IF Moonraker 查询失败，刷写页面 SHALL 显示查询错误。

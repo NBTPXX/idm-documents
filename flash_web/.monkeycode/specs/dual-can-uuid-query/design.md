@@ -5,18 +5,18 @@ Updated: 2026-07-30
 
 ## 描述
 
-CAN 查询接口执行 Katapult 与 Klipper 两条受控查询命令，并将结果按用途分组返回。
+CAN 查询接口通过 Moonraker 聚合未分配 CAN 节点、Klipper MCU 配置与 MCU 状态。
 
 ## 组件与接口
 
-- `server.py`：执行 `flashtool.py -q` 获取 Katapult UUID；执行 `canbus_query.py` 获取运行中 Klipper MCU UUID。
-- `GET /api/devices/can`：返回 `katapult_uuids`、`klipper_uuids`、兼容字段 `devices` 及命令输出。
-- `templates/index.html`：分组显示两类 UUID，提供 UUID 选择按钮；Katapult 首项仍为默认值。
+- `server.py`：调用 `/machine/peripherals/canbus`、`/printer/objects/query?configfile`、`/printer/objects/list` 与 MCU 状态接口。
+- `GET /api/devices/can`：返回 `can_devices`；每项包含 UUID、application、MCU 名称、MCU 型号、固件版本和来源。
+- `templates/index.html`：逐项显示设备元数据，并为包含 UUID 的项提供刷写选择按钮。
 
 ## 错误处理
 
-Klipper 查询失败时保留 Katapult 查询结果，并将失败信息附加到原始输出。
+CAN 接口不可用时返回 Moonraker 错误。配置与 MCU 状态缺失时保留可用的 CAN 节点结果，并将缺失的元数据显示为未知。
 
 ## 测试策略
 
-验证接口返回两类数组；验证两组 UUID 的选择按钮均可写入刷写输入框；验证翻译键覆盖四种语言。
+使用模拟 Moonraker 响应验证未分配节点、配置 MCU、型号提取和兼容 UUID 数组；验证页面选择按钮与四种语言键。
