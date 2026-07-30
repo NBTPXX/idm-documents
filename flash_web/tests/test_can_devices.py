@@ -30,8 +30,9 @@ class CanDevicesTest(unittest.TestCase):
 
         self.assertEqual(result["katapult_uuids"], ["aabbccddeeff"])
         self.assertEqual(result["klipper_uuids"], ["112233445566"])
-        self.assertEqual(result["can_devices"][1]["mcu_model"], "STM32F072")
-        self.assertEqual(result["can_devices"][1]["source"], "configured")
+        toolhead = next(device for device in result["can_devices"] if device["name"] == "toolhead")
+        self.assertEqual(toolhead["mcu_model"], "STM32F072")
+        self.assertEqual(toolhead["source"], "runtime")
 
 
 if __name__ == "__main__":

@@ -944,7 +944,7 @@
             const row = document.createElement("div");
             row.style.marginTop = "8px";
             const details = [
-              `${t("can_device_source")}: ${device.source === "configured" ? t("can_source_configured") : t("can_source_unassigned")}`,
+              `${t("can_device_source")}: ${device.source === "runtime" ? t("can_source_runtime") : t("can_source_unassigned")}`,
               `${t("can_device_application")}: ${device.application || t("can_unknown")}`,
               `${t("can_device_name")}: ${device.name || t("can_unknown")}`,
               `${t("can_device_model")}: ${device.mcu_model || t("can_unknown")}`,

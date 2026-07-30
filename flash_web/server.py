@@ -157,20 +157,19 @@ def query_can_devices():
     ) if mcu_objects else {}
     statuses = status_response.get("result", status_response).get("status", {})
 
-    for section, settings in config.items():
-        if section != "mcu" and not section.startswith("mcu "):
-            continue
-        status = statuses.get(section, {})
+    for mcu_name in mcu_objects:
+        settings = config.get(mcu_name, {})
+        status = statuses.get(mcu_name, {})
         constants = status.get("mcu_constants", {})
         model = next((str(constants[key]) for key in (
             "MCU", "MCU_TYPE", "CONFIG_MCU", "CHIP", "CHIP_TYPE"
         ) if constants.get(key)), "")
         device_rows.append({
-            "name": section[4:] if section.startswith("mcu ") else "mcu",
+            "name": mcu_name[4:] if mcu_name.startswith("mcu ") else "mcu",
             "uuid": str(settings.get("canbus_uuid", "")).lower(),
             "application": "Klipper",
             "mcu_model": model,
-            "source": "configured",
+            "source": "runtime",
             "mcu_version": status.get("mcu_version", ""),
         })
 
