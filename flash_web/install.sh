@@ -18,6 +18,21 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SERVICE_NAME="idm_flash_web"
 SERVICE_PORT="8888"
+SERVICE_SCOPE="user"
+SERVICE_USER="${USER}"
+SERVICE_HOME="${HOME}"
+
+if command -v sudo &>/dev/null && sudo -v; then
+    SERVICE_SCOPE="system"
+    SERVICE_HOME="$(getent passwd "${SERVICE_USER}" | cut -d: -f6)"
+    SERVICE_HOME="${SERVICE_HOME:-${HOME}}"
+fi
+
+if [[ "${SERVICE_SCOPE}" == "system" ]]; then
+    IS_SYSTEM_SERVICE="True"
+else
+    IS_SYSTEM_SERVICE="False"
+fi
 
 PYTHON_BIN="python3"
 if [[ -f "${HOME}/klippy-env/bin/python" ]]; then
@@ -61,6 +76,11 @@ if [[ -z "${MOONRAKER_CONF}" ]]; then
 else
     if grep -q "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" 2>/dev/null; then
         print_info "[update_manager ${UPDATE_NAME}] already exists, skipping"
+        if grep -A10 "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" | grep -q "^is_system_service:"; then
+            sed -i "/^\[update_manager ${UPDATE_NAME}\]/,/^\[/{s/^is_system_service:.*/is_system_service: ${IS_SYSTEM_SERVICE}/}" "${MOONRAKER_CONF}"
+        else
+            sed -i "/^\[update_manager ${UPDATE_NAME}\]/a is_system_service: ${IS_SYSTEM_SERVICE}" "${MOONRAKER_CONF}"
+        fi
         if ! grep -A10 "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" \
              | grep -q "managed_services:"; then
             print_info "Adding managed_services: ${UPDATE_NAME} ..."
@@ -78,7 +98,7 @@ type: git_repo
 channel: dev
 path: ${REPO_DIR}
 origin: ${REPO_REMOTE}
-is_system_service: False
+is_system_service: ${IS_SYSTEM_SERVICE}
 managed_services: ${UPDATE_NAME}
 info_tags:
     desc=IDM Flash Web Tool
@@ -107,10 +127,14 @@ SYSTEMD_DIR="/etc/systemd/system"
 USER_SYSTEMD_DIR="${HOME}/.config/systemd/user"
 
 if [[ -f "${SERVICE_FILE}" ]]; then
-    sed "s|__FLASH_WEB_DIR__|${SCRIPT_DIR}|g" "${SERVICE_FILE}" > "/tmp/${SERVICE_NAME}.service"
+    sed \
+        -e "s|__FLASH_WEB_DIR__|${SCRIPT_DIR}|g" \
+        -e "s|__FLASH_WEB_USER__|${SERVICE_USER}|g" \
+        -e "s|__FLASH_WEB_HOME__|${SERVICE_HOME}|g" \
+        "${SERVICE_FILE}" > "/tmp/${SERVICE_NAME}.service"
     echo "Environment=IDM_FW_BASE=${REPO_DIR}" >> "/tmp/${SERVICE_NAME}.service"
 
-    if command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
+    if [[ "${SERVICE_SCOPE}" == "system" ]]; then
         print_info "Installing system-level systemd service..."
         sudo cp "/tmp/${SERVICE_NAME}.service" "${SYSTEMD_DIR}/${SERVICE_NAME}.service"
         sudo systemctl daemon-reload
@@ -128,8 +152,10 @@ if [[ -f "${SERVICE_FILE}" ]]; then
         mkdir -p "${USER_SYSTEMD_DIR}"
         cp "/tmp/${SERVICE_NAME}.service" "${USER_SYSTEMD_DIR}/${SERVICE_NAME}.service"
 
-        if command -v loginctl &>/dev/null; then
-            loginctl enable-linger "${USER}" 2>/dev/null || true
+        if command -v loginctl &>/dev/null && loginctl enable-linger "${USER}"; then
+            print_ok "User service will start after reboot"
+        else
+            print_warn "Unable to enable user linger; run: sudo loginctl enable-linger ${USER}"
         fi
 
         systemctl --user daemon-reload

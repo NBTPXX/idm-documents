@@ -5,6 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+User=__FLASH_WEB_USER__
 ExecStart=__FLASH_WEB_DIR__/start_systemd.sh
 WorkingDirectory=__FLASH_WEB_DIR__
 Restart=on-failure
@@ -13,6 +14,7 @@ StandardOutput=journal
 StandardError=journal
 Environment=PYTHONUNBUFFERED=1
 Environment=MOONRAKER_URL=http://localhost:7125
+Environment=HOME=__FLASH_WEB_HOME__
 
 [Install]
 WantedBy=multi-user.target
