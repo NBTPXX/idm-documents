@@ -15,7 +15,7 @@ class CanDevicesTest(unittest.TestCase):
                 }]}}
             if endpoint == "/printer/objects/query?configfile":
                 return {"result": {"status": {"configfile": {"settings": {
-                    "mcu toolhead": {"canbus_uuid": "112233445566"},
+                    "toolhead": {"canbus_uuid": "112233445566"},
                 }}}}}
             if endpoint == "/printer/objects/list":
                 return {"result": {"objects": ["mcu", "mcu toolhead"]}}
