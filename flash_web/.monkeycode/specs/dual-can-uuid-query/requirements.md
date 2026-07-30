@@ -21,3 +21,4 @@
 8. WHEN 查询结果包含 UUID，刷写页面 SHALL 在同一选择控件中显示对应 MCU 情报。
 9. WHEN 用户选择 UUID，刷写页面 SHALL 使用高亮样式标识当前选择。
 10. WHEN Klipper 注册名为 `abc` 的 MCU 对象，刷写页面 SHALL 按 `[mcu abc]`、`[abc]` 顺序查找 `canbus_uuid` 补充该 MCU 对象。
+11. WHEN 刷写页面显示 UUID 选择控件，刷写页面 SHALL 显示名称、应用、使用中状态、型号和固件版本。
