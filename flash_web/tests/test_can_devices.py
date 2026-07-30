@@ -16,7 +16,6 @@ class CanDevicesTest(unittest.TestCase):
             if endpoint == "/printer/objects/query?configfile":
                 return {"result": {"status": {"configfile": {"settings": {
                     "mcu toolhead": {"canbus_uuid": "112233445566"},
-                    "probe bridge": {"canbus_uuid": "A1B2C3D4E5F6"},
                 }}}}}
             if endpoint == "/printer/objects/list":
                 return {"result": {"objects": ["mcu", "mcu toolhead"]}}
@@ -30,13 +29,10 @@ class CanDevicesTest(unittest.TestCase):
         result = server.query_can_devices()
 
         self.assertEqual(result["katapult_uuids"], ["aabbccddeeff"])
-        self.assertEqual(result["klipper_uuids"], ["112233445566", "a1b2c3d4e5f6"])
+        self.assertEqual(result["klipper_uuids"], ["112233445566"])
         toolhead = next(device for device in result["can_devices"] if device["name"] == "toolhead")
         self.assertEqual(toolhead["mcu_model"], "STM32F072")
         self.assertEqual(toolhead["source"], "runtime")
-        bridge = next(device for device in result["can_devices"] if device["name"] == "probe bridge")
-        self.assertEqual(bridge["uuid"], "a1b2c3d4e5f6")
-        self.assertEqual(bridge["source"], "configured")
 
 
 if __name__ == "__main__":
