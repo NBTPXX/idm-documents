@@ -178,6 +178,41 @@
         gap: 8px;
         margin-top: 12px;
       }
+      .can-device-select,
+      .can-device-info {
+        width: 100%;
+        margin-top: 8px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-input);
+        color: var(--text);
+        text-align: left;
+      }
+      .can-device-select {
+        cursor: pointer;
+      }
+      .can-device-select:hover {
+        border-color: var(--accent);
+      }
+      .can-device-select.selected {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 18%, var(--bg-input));
+        box-shadow: 0 0 0 1px var(--accent);
+      }
+      .can-device-uuid {
+        display: block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+      .can-device-meta {
+        display: block;
+        margin-top: 5px;
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        line-height: 1.5;
+      }
 
       .lang-select {
         background: var(--bg-input);
@@ -934,15 +969,16 @@
       // ============================================================
       // 设备查询
       // ============================================================
-      function renderCanDevices(container, devices) {
+      function renderCanDevices(container, devices, selectedUuid) {
         if (devices.length === 0) {
           const empty = document.createElement("span");
           empty.textContent = t("log_can_none");
           container.appendChild(empty);
         } else {
           devices.forEach((device) => {
-            const row = document.createElement("div");
-            row.style.marginTop = "8px";
+            const row = document.createElement(device.uuid ? "button" : "div");
+            row.className = device.uuid ? "can-device-select" : "can-device-info";
+            if (device.uuid) row.type = "button";
             const details = [
               `${t("can_device_source")}: ${device.source === "runtime" ? t("can_source_runtime") : t("can_source_unassigned")}`,
               `${t("can_device_application")}: ${device.application || t("can_unknown")}`,
@@ -951,22 +987,28 @@
             ];
             if (device.mcu_version) details.push(`${t("can_device_version")}: ${device.mcu_version}`);
 
-            const info = document.createElement("div");
+            if (device.uuid) {
+              const uuid = document.createElement("span");
+              uuid.className = "can-device-uuid";
+              uuid.textContent = device.uuid;
+              row.appendChild(uuid);
+            }
+            const info = document.createElement("span");
+            info.className = "can-device-meta";
             info.textContent = details.join(" | ");
             row.appendChild(info);
 
             if (device.uuid) {
-              const button = document.createElement("button");
-              button.type = "button";
-              button.className = "btn btn-secondary btn-sm";
-              button.style.marginTop = "4px";
-              button.textContent = device.uuid;
-              button.title = t("can_uuid_select_hint");
-              button.onclick = () => {
+              row.title = t("can_uuid_select_hint");
+              row.classList.toggle("selected", device.uuid === selectedUuid);
+              row.onclick = () => {
                 document.getElementById("can-uuid").value = device.uuid;
+                container.querySelectorAll(".can-device-select").forEach((item) => {
+                  item.classList.toggle("selected", item.dataset.uuid === device.uuid);
+                });
                 logConsole("success", t("log_can_selected", { uuid: device.uuid }));
               };
-              row.appendChild(button);
+              row.dataset.uuid = device.uuid;
             }
             container.appendChild(row);
           });
@@ -984,13 +1026,17 @@
           }
           const canDevices = d.can_devices || [];
           const resultEl = document.getElementById("can-query-results");
-          resultEl.replaceChildren();
-          renderCanDevices(resultEl, canDevices);
           const defaultDevice = canDevices.find(
             (device) => device.source === "unassigned" && device.application === "Katapult" && device.uuid,
           ) || canDevices.find((device) => device.uuid);
+          const currentUuid = document.getElementById("can-uuid").value.trim();
+          const selectedUuid = canDevices.some((device) => device.uuid === currentUuid)
+            ? currentUuid
+            : (defaultDevice && defaultDevice.uuid);
+          resultEl.replaceChildren();
+          renderCanDevices(resultEl, canDevices, selectedUuid);
           if (defaultDevice) {
-            document.getElementById("can-uuid").value = defaultDevice.uuid;
+            document.getElementById("can-uuid").value = selectedUuid;
             logConsole(
               "success",
               t("log_can_found", {

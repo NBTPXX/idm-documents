@@ -18,3 +18,5 @@
 5. WHEN 查询结果包含 UUID，刷写页面 SHALL 为该 UUID 提供选择控件。
 6. WHEN 用户选择任一 UUID，刷写页面 SHALL 将该 UUID 填入刷写输入框。
 7. IF Moonraker 查询失败，刷写页面 SHALL 显示查询错误。
+8. WHEN 查询结果包含 UUID，刷写页面 SHALL 在同一选择控件中显示对应 MCU 情报。
+9. WHEN 用户选择 UUID，刷写页面 SHALL 使用高亮样式标识当前选择。

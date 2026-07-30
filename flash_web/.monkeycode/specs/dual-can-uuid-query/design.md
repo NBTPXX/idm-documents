@@ -11,7 +11,7 @@ CAN 查询接口通过 Moonraker 聚合未分配 CAN 节点、Klipper MCU 配置
 
 - `server.py`：调用 `/machine/peripherals/canbus`、`/printer/objects/query?configfile`、`/printer/objects/list` 与 MCU 状态接口。
 - `GET /api/devices/can`：返回 `can_devices`；每项包含 UUID、application、MCU 名称、MCU 型号、固件版本和来源。
-- `templates/index.html`：逐项显示设备元数据，并为包含 UUID 的项提供刷写选择按钮。
+- `templates/index.html`：使用全宽设备卡片展示 UUID 与元数据；当前选中卡片使用主题强调色高亮。
 
 ## 错误处理
 
