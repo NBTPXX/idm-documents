@@ -55,6 +55,20 @@ chmod +x "${SCRIPT_DIR}/start_systemd.sh"
 chmod +x "${SCRIPT_DIR}/server.py"
 print_ok "Done"
 
+KLIPPER_DIR="${KLIPPER_DIR:-${HOME}/klipper}"
+EXTRA_SOURCE="${SCRIPT_DIR}/klippy_extra/idm_mcu_info.py"
+if [[ -d "${KLIPPER_DIR}/klippy/extras" && -f "${EXTRA_SOURCE}" ]]; then
+    print_info "Installing Klipper runtime MCU query module..."
+    cp "${EXTRA_SOURCE}" "${KLIPPER_DIR}/klippy/extras/idm_mcu_info.py"
+    for config in "${HOME}/printer_data/config/printer.cfg" "${HOME}/klipper_config/printer.cfg"; do
+        if [[ -f "${config}" ]] && ! grep -q "^\[idm_mcu_info\]" "${config}"; then
+            printf '\n[idm_mcu_info]\n' >> "${config}"
+            print_ok "Enabled runtime MCU query in ${config}"
+            break
+        fi
+    done
+fi
+
 # -----------------------------------------------------------
 # 2. Configure Moonraker update_manager
 # -----------------------------------------------------------

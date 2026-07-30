@@ -142,40 +142,19 @@ def query_can_devices():
         for device in unassigned
     ]
 
-    config_response = moonraker_request("/printer/objects/query?configfile")
-    objects_response = moonraker_request("/printer/objects/list")
-    config_result = config_response.get("result", config_response)
-    objects_result = objects_response.get("result", objects_response)
-    config = config_result.get("status", {}).get("configfile", {}).get("config", {})
-    mcu_objects = [
-        name for name in objects_result.get("objects", [])
-        if name == "mcu" or name.startswith("mcu ")
-    ]
-    status_response = moonraker_request(
-        "/printer/objects/query?" + urlencode({name: "" for name in mcu_objects})
-    ) if mcu_objects else {}
-    statuses = (
-        status_response.get("result", status_response)
-        .get("status", {})
+    runtime_response = moonraker_request("/printer/objects/query?idm_mcu_info")
+    runtime_status = (
+        runtime_response.get("result", runtime_response)
+        .get("status", {}).get("idm_mcu_info", {})
     )
-
-    for section, settings in config.items():
-        if section != "mcu" and not section.startswith("mcu "):
-            continue
-        status = statuses.get(section, {})
-        constants = status.get("mcu_constants", {})
-        model = next((
-            str(constants[key]) for key in (
-                "MCU", "MCU_TYPE", "CONFIG_MCU", "CHIP", "CHIP_TYPE"
-            ) if constants.get(key)
-        ), "")
+    for mcu in runtime_status.get("mcus", []):
         device_rows.append({
-            "name": section[4:] if section.startswith("mcu ") else "mcu",
-            "uuid": str(settings.get("canbus_uuid", "")).lower(),
-            "application": "Klipper",
-            "mcu_model": model,
-            "source": "configured",
-            "mcu_version": status.get("mcu_version", ""),
+            "name": mcu.get("name", ""),
+            "uuid": str(mcu.get("uuid", "")).lower(),
+            "application": mcu.get("application", "Klipper"),
+            "mcu_model": mcu.get("mcu_model", ""),
+            "source": "runtime",
+            "mcu_version": mcu.get("mcu_version", ""),
         })
 
     katapult_uuids = sorted({
@@ -188,9 +167,7 @@ def query_can_devices():
     })
     raw_output = json.dumps({
         "canbus": can_response,
-        "configfile": config_response,
-        "mcu_objects": objects_response,
-        "mcu_status": status_response,
+        "runtime_mcus": runtime_response,
     }, ensure_ascii=False, indent=2)
     return {
         "devices": katapult_uuids,
