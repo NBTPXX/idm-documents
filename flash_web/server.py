@@ -206,6 +206,19 @@ def query_can_devices():
     for device in merged_devices:
         device.setdefault("in_use", device["source"] == "runtime")
 
+    direct_status = {}
+    for device in merged_devices:
+        if (
+            device["source"] != "unassigned"
+            or device["application"].lower() != "katapult"
+            or device["name"]
+            or device["mcu_model"]
+        ):
+            continue
+        status, output = query_katapult_status(env, can_if, device["uuid"])
+        direct_status[device["uuid"]] = output
+        device.update(status)
+
     katapult_uuids = sorted({
         device["uuid"] for device in merged_devices
         if device["application"].lower() == "katapult" and device["uuid"]
@@ -219,6 +232,7 @@ def query_can_devices():
         "configfile": config_response,
         "mcu_objects": objects_response,
         "mcu_status": status_response,
+        "direct_status": direct_status,
     }, ensure_ascii=False, indent=2)
     return {
         "devices": katapult_uuids,
@@ -228,6 +242,27 @@ def query_can_devices():
         "raw_output": raw_output,
         "can_interface": can_if,
     }
+
+
+def query_katapult_status(env, can_if, can_uuid):
+    flash_tool = env.get("flash_tool")
+    if not flash_tool:
+        return {}, "Katapult status query skipped: flash tool unavailable"
+    python_exe = sys.executable if str(LIB_DIR) in str(flash_tool) else KLIPPER_ENV
+    cmd = [python_exe, flash_tool, "-i", can_if, "-u", can_uuid, "-s"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+        output = "$ " + " ".join(cmd) + "\n" + result.stdout + result.stderr
+    except Exception as error:
+        return {}, f"Katapult status query failed: {error}"
+
+    model = re.search(r"MCU type:\s*(.+)", output)
+    version = re.search(r"Software Version:\s*(.+)", output)
+    return {
+        "name": "Katapult",
+        "mcu_model": model.group(1).strip() if model else "",
+        "mcu_version": version.group(1).strip() if version else "",
+    }, output
 
 
 def query_usb_devices():

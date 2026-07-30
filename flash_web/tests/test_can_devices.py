@@ -63,6 +63,33 @@ class CanDevicesTest(unittest.TestCase):
         self.assertEqual(device["mcu_model"], "STM32F072")
         self.assertTrue(device["in_use"])
 
+    @patch("server.query_katapult_status")
+    @patch("server.detect_environment", return_value={
+        "can_interface": "can0", "flash_tool": "/tmp/flashtool.py",
+    })
+    @patch("server.moonraker_request")
+    def test_queries_unmatched_katapult_status(self, moonraker_request, _, status_query):
+        moonraker_request.side_effect = lambda endpoint: (
+            {"result": {"can_uuids": [{
+                "uuid": "AABBCCDDEEFF", "application": "Katapult",
+            }]}}
+            if endpoint.startswith("/machine/peripherals/canbus")
+            else {"result": {"status": {"configfile": {"settings": {}}}}}
+            if endpoint == "/printer/objects/query?configfile"
+            else {"result": {"objects": []}}
+        )
+        status_query.return_value = (
+            {"name": "Katapult", "mcu_model": "STM32F072", "mcu_version": "v1.2.3"},
+            "Katapult Connected",
+        )
+
+        result = server.query_can_devices()
+
+        status_query.assert_called_once()
+        device = result["can_devices"][0]
+        self.assertEqual(device["mcu_model"], "STM32F072")
+        self.assertEqual(device["mcu_version"], "v1.2.3")
+
 
 if __name__ == "__main__":
     unittest.main()
