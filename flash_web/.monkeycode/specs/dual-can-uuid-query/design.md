@@ -11,7 +11,7 @@ CAN 查询接口执行 Katapult 与 Klipper 两条受控查询命令，并将结
 
 - `server.py`：执行 `flashtool.py -q` 获取 Katapult UUID；执行 `canbus_query.py` 获取运行中 Klipper MCU UUID。
 - `GET /api/devices/can`：返回 `katapult_uuids`、`klipper_uuids`、兼容字段 `devices` 及命令输出。
-- `templates/index.html`：分组显示两类 UUID，仅自动填充 Katapult UUID。
+- `templates/index.html`：分组显示两类 UUID，提供 UUID 选择按钮；Katapult 首项仍为默认值。
 
 ## 错误处理
 
@@ -19,4 +19,4 @@ Klipper 查询失败时保留 Katapult 查询结果，并将失败信息附加�
 
 ## 测试策略
 
-验证接口返回两类数组；验证页面仅将 Katapult UUID 写入刷写输入框；验证翻译键覆盖四种语言。
+验证接口返回两类数组；验证两组 UUID 的选择按钮均可写入刷写输入框；验证翻译键覆盖四种语言。

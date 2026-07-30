@@ -465,7 +465,7 @@
                     Query
                   </button>
                 </div>
-                <div id="can-query-results" class="hint" style="margin-top: 8px; white-space: pre-line"></div>
+                <div id="can-query-results" class="hint" style="margin-top: 8px"></div>
               </div>
               <div id="dev-usb-panel" style="display: none">
                 <label data-i18n="dev_serial">Serial Port</label>
@@ -934,6 +934,34 @@
       // ============================================================
       // 设备查询
       // ============================================================
+      function renderCanUuidGroup(container, label, uuids) {
+        const group = document.createElement("div");
+        const title = document.createElement("div");
+        title.textContent = label;
+        group.appendChild(title);
+
+        if (uuids.length === 0) {
+          const empty = document.createElement("span");
+          empty.textContent = t("log_can_none");
+          group.appendChild(empty);
+        } else {
+          uuids.forEach((uuid) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "btn btn-secondary btn-sm";
+            button.style.margin = "4px 4px 0 0";
+            button.textContent = uuid;
+            button.title = t("can_uuid_select_hint");
+            button.onclick = () => {
+              document.getElementById("can-uuid").value = uuid;
+              logConsole("success", t("log_can_selected", { uuid }));
+            };
+            group.appendChild(button);
+          });
+        }
+        container.appendChild(group);
+      }
+
       async function queryCAN() {
         logConsole("info", t("log_can_query"));
         try {
@@ -946,10 +974,9 @@
           const katapultUuids = d.katapult_uuids || d.devices || [];
           const klipperUuids = d.klipper_uuids || [];
           const resultEl = document.getElementById("can-query-results");
-          resultEl.textContent = [
-            t("log_katapult_uuids", { uuids: katapultUuids.join(", ") || t("log_can_none") }),
-            t("log_klipper_uuids", { uuids: klipperUuids.join(", ") || t("log_can_none") }),
-          ].join("\n");
+          resultEl.replaceChildren();
+          renderCanUuidGroup(resultEl, t("can_katapult_uuids"), katapultUuids);
+          renderCanUuidGroup(resultEl, t("can_klipper_uuids"), klipperUuids);
           if (katapultUuids.length > 0) {
             document.getElementById("can-uuid").value = katapultUuids[0];
             logConsole(

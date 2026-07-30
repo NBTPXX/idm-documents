@@ -9,9 +9,10 @@
 
 ### 需求 1：双通道查询
 
-**用户故事：** 作为打印机用户，我希望同时查看两类 CAN UUID，以便选择正确的 UUID 用于刷写或 Klipper 配置。
+**用户故事：** 作为打印机用户，我希望同时查看两类 CAN UUID，并选择任一查询结果用于刷写。
 
 1. WHEN 用户查询 CAN 设备，刷写页面 SHALL 返回 Katapult UUID 和 Klipper MCU UUID 两个分组。
 2. WHEN 存在 Katapult UUID，刷写页面 SHALL 将第一个 Katapult UUID 填入刷写输入框。
-3. WHEN 存在 Klipper MCU UUID，刷写页面 SHALL 标记该 UUID 用于 `canbus_uuid` 配置。
-4. IF 任一分组查询失败，刷写页面 SHALL 展示另一分组的可用结果和原始命令输出。
+3. WHEN 查询结果包含 Katapult UUID 或 Klipper MCU UUID，刷写页面 SHALL 为每个 UUID 提供选择控件。
+4. WHEN 用户选择任一 UUID，刷写页面 SHALL 将该 UUID 填入刷写输入框。
+5. IF 任一分组查询失败，刷写页面 SHALL 展示另一分组的可用结果和原始命令输出。
