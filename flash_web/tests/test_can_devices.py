@@ -13,11 +13,16 @@ class CanDevicesTest(unittest.TestCase):
                 return {"result": {"can_uuids": [{
                     "uuid": "AABBCCDDEEFF", "application": "Katapult",
                 }]}}
-            return {"result": {"status": {"idm_mcu_info": {"mcus": [{
-                "name": "mcu toolhead", "uuid": "112233445566",
-                "application": "Klipper", "mcu_model": "STM32F072",
+            if endpoint == "/printer/objects/query?configfile":
+                return {"result": {"status": {"configfile": {"settings": {
+                    "mcu toolhead": {"canbus_uuid": "112233445566"},
+                }}}}}
+            if endpoint == "/printer/objects/list":
+                return {"result": {"objects": ["mcu", "mcu toolhead"]}}
+            return {"result": {"status": {"mcu toolhead": {
+                "mcu_constants": {"MCU": "STM32F072"},
                 "mcu_version": "v0.12.0",
-            }]}}}}
+            }}}}
 
         moonraker_request.side_effect = response
 
@@ -26,7 +31,7 @@ class CanDevicesTest(unittest.TestCase):
         self.assertEqual(result["katapult_uuids"], ["aabbccddeeff"])
         self.assertEqual(result["klipper_uuids"], ["112233445566"])
         self.assertEqual(result["can_devices"][1]["mcu_model"], "STM32F072")
-        self.assertEqual(result["can_devices"][1]["source"], "runtime")
+        self.assertEqual(result["can_devices"][1]["source"], "configured")
 
 
 if __name__ == "__main__":
