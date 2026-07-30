@@ -23,6 +23,8 @@ CAN 接口不可用时返回 Moonraker 错误。配置与 MCU 状态缺失时保
 
 未匹配已注册 MCU 的 Katapult 节点使用 `flashtool.py -u <uuid> -s` 获取引导器返回的 MCU 类型和软件版本。
 
+Moonraker 无法绑定 CAN 接口时，接口保留已注册 MCU 查询结果，并将 CAN 查询错误写入原始输出。
+
 ## 测试策略
 
 使用模拟 Moonraker 响应验证未分配节点、配置 MCU、型号提取和兼容 UUID 数组；验证页面选择按钮与四种语言键。

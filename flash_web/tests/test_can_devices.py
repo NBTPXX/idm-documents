@@ -90,6 +90,27 @@ class CanDevicesTest(unittest.TestCase):
         self.assertEqual(device["mcu_model"], "STM32F072")
         self.assertEqual(device["mcu_version"], "v1.2.3")
 
+    @patch("server.detect_environment", return_value={"can_interface": "can0"})
+    @patch("server.moonraker_request")
+    def test_keeps_registered_mcus_when_can_query_fails(self, moonraker_request, _):
+        def response(endpoint):
+            if endpoint.startswith("/machine/peripherals/canbus"):
+                return {"error": "HTTP Error 500: Unable to bind socket"}
+            if endpoint == "/printer/objects/query?configfile":
+                return {"result": {"status": {"configfile": {"settings": {
+                    "mcu toolhead": {"canbus_uuid": "112233445566"},
+                }}}}}
+            if endpoint == "/printer/objects/list":
+                return {"result": {"objects": ["mcu toolhead"]}}
+            return {"result": {"status": {"mcu toolhead": {}}}}
+
+        moonraker_request.side_effect = response
+        result = server.query_can_devices()
+
+        self.assertNotIn("error", result)
+        self.assertEqual(result["klipper_uuids"], ["112233445566"])
+        self.assertIn("Unable to bind socket", result["raw_output"])
+
 
 if __name__ == "__main__":
     unittest.main()

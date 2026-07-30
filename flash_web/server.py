@@ -126,11 +126,8 @@ def query_can_devices():
     can_response = moonraker_request(
         "/machine/peripherals/canbus?" + urlencode({"interface": can_if})
     )
-    if "error" in can_response:
-        return {"devices": [], "error": can_response["error"]}
-
     can_result = can_response.get("result", can_response)
-    unassigned = can_result.get("can_uuids", [])
+    unassigned = can_result.get("can_uuids", []) if "error" not in can_response else []
     device_rows = [
         {
             "name": "",
@@ -229,6 +226,7 @@ def query_can_devices():
     })
     raw_output = json.dumps({
         "canbus": can_response,
+        "canbus_error": can_response.get("error", ""),
         "configfile": config_response,
         "mcu_objects": objects_response,
         "mcu_status": status_response,
