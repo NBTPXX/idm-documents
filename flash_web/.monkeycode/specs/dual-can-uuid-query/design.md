@@ -17,6 +17,8 @@ CAN 查询接口通过 Moonraker 聚合未分配 CAN 节点、Klipper MCU 配置
 
 CAN 接口不可用时返回 Moonraker 错误。配置与 MCU 状态缺失时保留可用的 CAN 节点结果，并将缺失的元数据显示为未知。
 
+所有包含 `canbus_uuid` 的配置段均生成设备记录；已注册 MCU 使用运行时状态记录，避免重复。
+
 ## 测试策略
 
 使用模拟 Moonraker 响应验证未分配节点、配置 MCU、型号提取和兼容 UUID 数组；验证页面选择按钮与四种语言键。

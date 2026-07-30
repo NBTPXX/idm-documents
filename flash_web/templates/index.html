@@ -980,7 +980,7 @@
             row.className = device.uuid ? "can-device-select" : "can-device-info";
             if (device.uuid) row.type = "button";
             const details = [
-              `${t("can_device_source")}: ${device.source === "runtime" ? t("can_source_runtime") : t("can_source_unassigned")}`,
+              `${t("can_device_source")}: ${device.source === "runtime" ? t("can_source_runtime") : device.source === "configured" ? t("can_source_configured") : t("can_source_unassigned")}`,
               `${t("can_device_application")}: ${device.application || t("can_unknown")}`,
               `${t("can_device_name")}: ${device.name || t("can_unknown")}`,
               `${t("can_device_model")}: ${device.mcu_model || t("can_unknown")}`,

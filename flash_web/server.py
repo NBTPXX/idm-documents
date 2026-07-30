@@ -173,6 +173,20 @@ def query_can_devices():
             "mcu_version": status.get("mcu_version", ""),
         })
 
+    registered_names = set(mcu_objects)
+    for section, settings in config.items():
+        can_uuid = settings.get("canbus_uuid")
+        if section in registered_names or not can_uuid:
+            continue
+        device_rows.append({
+            "name": section,
+            "uuid": str(can_uuid).lower(),
+            "application": "Klipper",
+            "mcu_model": "",
+            "source": "configured",
+            "mcu_version": "",
+        })
+
     katapult_uuids = sorted({
         device["uuid"] for device in device_rows
         if device["application"].lower() == "katapult" and device["uuid"]

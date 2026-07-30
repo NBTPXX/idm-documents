@@ -20,3 +20,4 @@
 7. IF Moonraker 查询失败，刷写页面 SHALL 显示查询错误。
 8. WHEN 查询结果包含 UUID，刷写页面 SHALL 在同一选择控件中显示对应 MCU 情报。
 9. WHEN 用户选择 UUID，刷写页面 SHALL 使用高亮样式标识当前选择。
+10. WHEN 任意 Klipper 配置段包含 `canbus_uuid`，刷写页面 SHALL 显示该配置段的 UUID。
