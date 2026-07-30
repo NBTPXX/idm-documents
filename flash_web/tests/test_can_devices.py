@@ -33,6 +33,7 @@ class CanDevicesTest(unittest.TestCase):
         toolhead = next(device for device in result["can_devices"] if device["name"] == "toolhead")
         self.assertEqual(toolhead["mcu_model"], "STM32F072")
         self.assertEqual(toolhead["source"], "runtime")
+        self.assertNotIn("mcu", [device["name"] for device in result["can_devices"]])
 
     @patch("server.detect_environment", return_value={"can_interface": "can0"})
     @patch("server.moonraker_request")
@@ -102,7 +103,9 @@ class CanDevicesTest(unittest.TestCase):
                 }}}}}
             if endpoint == "/printer/objects/list":
                 return {"result": {"objects": ["mcu toolhead"]}}
-            return {"result": {"status": {"mcu toolhead": {}}}}
+            return {"result": {"status": {"mcu toolhead": {
+                "mcu_version": "v0.12.0",
+            }}}}
 
         moonraker_request.side_effect = response
         result = server.query_can_devices()

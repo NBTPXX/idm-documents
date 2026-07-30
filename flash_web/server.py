@@ -159,6 +159,8 @@ def query_can_devices():
         settings = config.get(mcu_name, config.get(short_name, {}))
         status = statuses.get(mcu_name, {})
         constants = status.get("mcu_constants", {})
+        if not constants and not status.get("mcu_version"):
+            continue
         model = next((str(constants[key]) for key in (
             "MCU", "MCU_TYPE", "CONFIG_MCU", "CHIP", "CHIP_TYPE"
         ) if constants.get(key)), "")

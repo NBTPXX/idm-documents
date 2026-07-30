@@ -25,6 +25,8 @@ CAN 接口不可用时返回 Moonraker 错误。配置与 MCU 状态缺失时保
 
 Moonraker 无法绑定 CAN 接口时，接口保留已注册 MCU 查询结果，并将 CAN 查询错误写入原始输出。
 
+已注册 MCU 仅在 Moonraker 状态包含 `mcu_constants` 或 `mcu_version` 时显示，确保页面仅列出已连接设备。
+
 ## 测试策略
 
 使用模拟 Moonraker 响应验证未分配节点、配置 MCU、型号提取和兼容 UUID 数组；验证页面选择按钮与四种语言键。

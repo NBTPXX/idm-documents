@@ -25,3 +25,4 @@
 12. WHEN 未分配节点与已注册 MCU 具有相同 UUID，刷写页面 SHALL 保留未分配节点记录并使用已注册 MCU 状态补充设备情报。
 13. WHEN 未分配 Katapult 节点缺少已注册 MCU 情报，刷写页面 SHALL 发送 Katapult 状态请求并显示返回的型号和软件版本。
 14. IF Moonraker 无法查询未分配 CAN 节点，刷写页面 SHALL 继续显示已注册 MCU 的查询结果并记录 CAN 查询错误。
+15. WHEN Klipper MCU 对象缺少运行时连接信息，刷写页面 SHALL 省略该 MCU 对象。
