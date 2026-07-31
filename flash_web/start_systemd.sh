@@ -3,7 +3,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-export HOME="${HOME:-/home/user}"
+
+# 解析真实用户家目录，避免 systemd 环境未注入 HOME 时误用 /home/user
+if [[ -z "${HOME:-}" ]] || [[ "${HOME}" == "/home/user" ]]; then
+    HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"
+    export HOME="${HOME:-$SCRIPT_DIR}"
+fi
+
 export MOONRAKER_URL="${MOONRAKER_URL:-http://localhost:7125}"
 
 if [[ -z "${IDM_FW_BASE:-}" ]]; then
