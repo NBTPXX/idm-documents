@@ -33,7 +33,21 @@ TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 LIB_DIR = Path(__file__).resolve().parent / "lib"
 FLASH_TOOL_PATH = str(LIB_DIR / "flashtool.py")
 
-KLIPPER_ENV = os.environ.get("KLIPPER_ENV", os.path.expanduser("~/klippy-env/bin/python"))
+def _find_klipper_env():
+    """优先使用 KLIPPER_ENV 环境变量，否则探测 klippy-env 下的 python3/python。"""
+    env = os.environ.get("KLIPPER_ENV")
+    if env:
+        return env
+    for candidate in (
+        os.path.expanduser("~/klippy-env/bin/python3"),
+        os.path.expanduser("~/klippy-env/bin/python"),
+    ):
+        if os.path.exists(candidate):
+            return candidate
+    return os.path.expanduser("~/klippy-env/bin/python3")
+
+
+KLIPPER_ENV = _find_klipper_env()
 KLIPPER_DIR = os.environ.get("KLIPPER_DIR", os.path.expanduser("~/klipper"))
 
 HOST = "0.0.0.0"
@@ -248,7 +262,7 @@ def query_katapult_status(env, can_if, can_uuid):
     flash_tool = env.get("flash_tool")
     if not flash_tool:
         return {}, "Katapult status query skipped: flash tool unavailable"
-    python_exe = sys.executable if str(LIB_DIR) in str(flash_tool) else KLIPPER_ENV
+    python_exe = KLIPPER_ENV if os.path.exists(KLIPPER_ENV) else sys.executable
     cmd = [python_exe, flash_tool, "-i", can_if, "-u", can_uuid, "-s"]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
@@ -574,8 +588,7 @@ def run_flash(task):
 
     env = detect_environment()
     flash_tool = env.get("flash_tool", "")
-    is_local_tool = str(LIB_DIR) in str(flash_tool)
-    python_exe = sys.executable if is_local_tool else KLIPPER_ENV
+    python_exe = KLIPPER_ENV if os.path.exists(KLIPPER_ENV) else sys.executable
 
     if not flash_tool and mode != "DFU":
         task.status = "failed"

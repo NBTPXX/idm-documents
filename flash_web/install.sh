@@ -35,7 +35,10 @@ else
 fi
 
 PYTHON_BIN="python3"
-if [[ -f "${HOME}/klippy-env/bin/python" ]]; then
+if [[ -f "${HOME}/klippy-env/bin/python3" ]]; then
+    PYTHON_BIN="${HOME}/klippy-env/bin/python3"
+    print_info "Using Klipper Python: ${PYTHON_BIN}"
+elif [[ -f "${HOME}/klippy-env/bin/python" ]]; then
     PYTHON_BIN="${HOME}/klippy-env/bin/python"
     print_info "Using Klipper Python: ${PYTHON_BIN}"
 fi
