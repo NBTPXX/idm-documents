@@ -18,7 +18,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlencode
 import mimetypes
 
 # ============================================================
@@ -33,7 +33,21 @@ TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 LIB_DIR = Path(__file__).resolve().parent / "lib"
 FLASH_TOOL_PATH = str(LIB_DIR / "flashtool.py")
 
-KLIPPER_ENV = os.environ.get("KLIPPER_ENV", os.path.expanduser("~/klippy-env/bin/python"))
+def _find_klipper_env():
+    """优先使用 KLIPPER_ENV 环境变量，否则探测 klippy-env 下的 python3/python。"""
+    env = os.environ.get("KLIPPER_ENV")
+    if env:
+        return env
+    for candidate in (
+        os.path.expanduser("~/klippy-env/bin/python3"),
+        os.path.expanduser("~/klippy-env/bin/python"),
+    ):
+        if os.path.exists(candidate):
+            return candidate
+    return os.path.expanduser("~/klippy-env/bin/python3")
+
+
+KLIPPER_ENV = _find_klipper_env()
 KLIPPER_DIR = os.environ.get("KLIPPER_DIR", os.path.expanduser("~/klipper"))
 
 HOST = "0.0.0.0"
@@ -121,29 +135,148 @@ def _scan_serial_devices():
 
 def query_can_devices():
     env = detect_environment()
-    if not env["flash_tool"] or not env["bootloader"]:
-        return {"devices": [], "error": "_backend.err_no_tool"}
-
     can_if = env["can_interface"] or "can0"
-    is_local = str(LIB_DIR) in str(env["flash_tool"])
-    python_exe = sys.executable if is_local else KLIPPER_ENV
 
-    try:
-        cmd = [python_exe, env["flash_tool"], "-i", can_if, "-q"]
-
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=30,
-        )
-
-        output = "$ " + " ".join(cmd) + "\n" + result.stdout + result.stderr
-        uuids = re.findall(r"[0-9a-f]{12,}", output)
-        return {
-            "devices": list(set(uuids)),
-            "raw_output": output,
-            "can_interface": can_if,
+    can_response = moonraker_request(
+        "/machine/peripherals/canbus?" + urlencode({"interface": can_if})
+    )
+    can_result = can_response.get("result", can_response)
+    unassigned = can_result.get("can_uuids", []) if "error" not in can_response else []
+    device_rows = [
+        {
+            "name": "",
+            "uuid": device.get("uuid", "").lower(),
+            "application": device.get("application", "Unknown"),
+            "mcu_model": "",
+            "source": "unassigned",
         }
-    except Exception as e:
-        return {"devices": [], "error": str(e)}
+        for device in unassigned
+    ]
+
+    config_response = moonraker_request("/printer/objects/query?configfile")
+    objects_response = moonraker_request("/printer/objects/list")
+    config_result = config_response.get("result", config_response)
+    objects_result = objects_response.get("result", objects_response)
+    configfile = config_result.get("status", {}).get("configfile", {})
+    config = configfile.get("settings", configfile.get("config", {}))
+    mcu_objects = [
+        name for name in objects_result.get("objects", [])
+        if name == "mcu" or name.startswith("mcu ")
+    ]
+    status_response = moonraker_request(
+        "/printer/objects/query?" + urlencode({name: "" for name in mcu_objects})
+    ) if mcu_objects else {}
+    statuses = status_response.get("result", status_response).get("status", {})
+
+    for mcu_name in mcu_objects:
+        short_name = mcu_name[4:] if mcu_name.startswith("mcu ") else ""
+        settings = config.get(mcu_name, config.get(short_name, {}))
+        status = statuses.get(mcu_name, {})
+        constants = status.get("mcu_constants", {})
+        if not constants and not status.get("mcu_version"):
+            continue
+        model = next((str(constants[key]) for key in (
+            "MCU", "MCU_TYPE", "CONFIG_MCU", "CHIP", "CHIP_TYPE"
+        ) if constants.get(key)), "")
+        device_rows.append({
+            "name": short_name or "mcu",
+            "uuid": str(settings.get("canbus_uuid", "")).lower(),
+            "application": "Klipper",
+            "mcu_model": model,
+            "source": "runtime",
+            "mcu_version": status.get("mcu_version", ""),
+        })
+
+    merged_devices = []
+    by_uuid = {}
+    for device in device_rows:
+        uuid = device["uuid"]
+        if not uuid:
+            merged_devices.append(device)
+            continue
+        existing = by_uuid.get(uuid)
+        if existing is None:
+            by_uuid[uuid] = device
+            merged_devices.append(device)
+            continue
+        if existing["source"] == "unassigned" and device["source"] == "runtime":
+            existing.update({
+                "name": device["name"],
+                "mcu_model": device["mcu_model"],
+                "mcu_version": device["mcu_version"],
+                "in_use": True,
+            })
+        elif existing["source"] == "runtime" and device["source"] == "unassigned":
+            device.update({
+                "name": existing["name"],
+                "mcu_model": existing["mcu_model"],
+                "mcu_version": existing["mcu_version"],
+                "in_use": True,
+            })
+            by_uuid[uuid] = device
+            merged_devices[merged_devices.index(existing)] = device
+
+    for device in merged_devices:
+        device.setdefault("in_use", device["source"] == "runtime")
+
+    direct_status = {}
+    for device in merged_devices:
+        if (
+            device["source"] != "unassigned"
+            or device["application"].lower() != "katapult"
+            or device["name"]
+            or device["mcu_model"]
+        ):
+            continue
+        status, output = query_katapult_status(env, can_if, device["uuid"])
+        direct_status[device["uuid"]] = output
+        device.update(status)
+
+    katapult_uuids = sorted({
+        device["uuid"] for device in merged_devices
+        if device["application"].lower() == "katapult" and device["uuid"]
+    })
+    klipper_uuids = sorted({
+        device["uuid"] for device in merged_devices
+        if device["application"].lower() == "klipper" and device["uuid"]
+    })
+    raw_output = json.dumps({
+        "canbus": can_response,
+        "canbus_error": can_response.get("error", ""),
+        "configfile": config_response,
+        "mcu_objects": objects_response,
+        "mcu_status": status_response,
+        "direct_status": direct_status,
+    }, ensure_ascii=False, indent=2)
+    return {
+        "devices": katapult_uuids,
+        "katapult_uuids": katapult_uuids,
+        "klipper_uuids": klipper_uuids,
+        "can_devices": merged_devices,
+        "raw_output": raw_output,
+        "can_interface": can_if,
+    }
+
+
+def query_katapult_status(env, can_if, can_uuid):
+    flash_tool = env.get("flash_tool")
+    if not flash_tool:
+        return {}, "Katapult status query skipped: flash tool unavailable"
+    python_exe = KLIPPER_ENV if os.path.exists(KLIPPER_ENV) else sys.executable
+    cmd = [python_exe, flash_tool, "-i", can_if, "-u", can_uuid, "-s"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+        output = "$ " + " ".join(cmd) + "\n" + result.stdout + result.stderr
+    except Exception as error:
+        return {}, f"Katapult status query failed: {error}"
+
+    model = re.search(r"MCU type:\s*(.+)", output)
+    version = re.search(r"Software Version:\s*(.+)", output)
+    return {
+        "name": "Katapult",
+        "mcu_model": model.group(1).strip() if model else "",
+        "mcu_version": version.group(1).strip() if version else "",
+    }, output
 
 
 def query_usb_devices():
@@ -455,8 +588,7 @@ def run_flash(task):
 
     env = detect_environment()
     flash_tool = env.get("flash_tool", "")
-    is_local_tool = str(LIB_DIR) in str(flash_tool)
-    python_exe = sys.executable if is_local_tool else KLIPPER_ENV
+    python_exe = KLIPPER_ENV if os.path.exists(KLIPPER_ENV) else sys.executable
 
     if not flash_tool and mode != "DFU":
         task.status = "failed"

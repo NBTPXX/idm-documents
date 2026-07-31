@@ -178,6 +178,41 @@
         gap: 8px;
         margin-top: 12px;
       }
+      .can-device-select,
+      .can-device-info {
+        width: 100%;
+        margin-top: 8px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-input);
+        color: var(--text);
+        text-align: left;
+      }
+      .can-device-select {
+        cursor: pointer;
+      }
+      .can-device-select:hover {
+        border-color: var(--accent);
+      }
+      .can-device-select.selected {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 18%, var(--bg-input));
+        box-shadow: 0 0 0 1px var(--accent);
+      }
+      .can-device-uuid {
+        display: block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+      .can-device-meta {
+        display: block;
+        margin-top: 5px;
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        line-height: 1.5;
+      }
 
       .lang-select {
         background: var(--bg-input);
@@ -465,6 +500,7 @@
                     Query
                   </button>
                 </div>
+                <div id="can-query-results" class="hint" style="margin-top: 8px"></div>
               </div>
               <div id="dev-usb-panel" style="display: none">
                 <label data-i18n="dev_serial">Serial Port</label>
@@ -933,6 +969,53 @@
       // ============================================================
       // 设备查询
       // ============================================================
+      function renderCanDevices(container, devices, selectedUuid) {
+        if (devices.length === 0) {
+          const empty = document.createElement("span");
+          empty.textContent = t("log_can_none");
+          container.appendChild(empty);
+        } else {
+          devices.forEach((device) => {
+            const row = document.createElement(device.uuid ? "button" : "div");
+            row.className = device.uuid ? "can-device-select" : "can-device-info";
+            if (device.uuid) row.type = "button";
+            const inUse = device.in_use ? "⭕" : "❌";
+            const details = [
+              `${t("can_device_name")}: ${device.name || t("can_unknown")}`,
+              `${t("can_device_application")}: ${device.application || t("can_unknown")}`,
+              `${t("can_device_in_use")}: ${inUse}`,
+              `${t("can_device_model")}: ${device.mcu_model || t("can_unknown")}`,
+              `${t("can_device_version")}: ${device.mcu_version || t("can_unknown")}`,
+            ];
+
+            if (device.uuid) {
+              const uuid = document.createElement("span");
+              uuid.className = "can-device-uuid";
+              uuid.textContent = device.uuid;
+              row.appendChild(uuid);
+            }
+            const info = document.createElement("span");
+            info.className = "can-device-meta";
+            info.textContent = details.join(" | ");
+            row.appendChild(info);
+
+            if (device.uuid) {
+              row.title = t("can_uuid_select_hint");
+              row.classList.toggle("selected", device.uuid === selectedUuid);
+              row.onclick = () => {
+                document.getElementById("can-uuid").value = device.uuid;
+                container.querySelectorAll(".can-device-select").forEach((item) => {
+                  item.classList.toggle("selected", item.dataset.uuid === device.uuid);
+                });
+                logConsole("success", t("log_can_selected", { uuid: device.uuid }));
+              };
+              row.dataset.uuid = device.uuid;
+            }
+            container.appendChild(row);
+          });
+        }
+      }
+
       async function queryCAN() {
         logConsole("info", t("log_can_query"));
         try {
@@ -942,13 +1025,24 @@
             logConsole("error", tbe(d.error));
             return;
           }
-          if (d.devices.length > 0) {
-            document.getElementById("can-uuid").value = d.devices[0];
+          const canDevices = d.can_devices || [];
+          const resultEl = document.getElementById("can-query-results");
+          const defaultDevice = canDevices.find(
+            (device) => device.source === "unassigned" && device.application === "Katapult" && device.uuid,
+          ) || canDevices.find((device) => device.uuid);
+          const currentUuid = document.getElementById("can-uuid").value.trim();
+          const selectedUuid = canDevices.some((device) => device.uuid === currentUuid)
+            ? currentUuid
+            : (defaultDevice && defaultDevice.uuid);
+          resultEl.replaceChildren();
+          renderCanDevices(resultEl, canDevices, selectedUuid);
+          if (defaultDevice) {
+            document.getElementById("can-uuid").value = selectedUuid;
             logConsole(
               "success",
               t("log_can_found", {
-                count: String(d.devices.length),
-                uuids: d.devices.join(", "),
+                count: String(canDevices.length),
+                uuids: canDevices.map((device) => device.uuid).filter(Boolean).join(", "),
               }),
             );
           } else {
