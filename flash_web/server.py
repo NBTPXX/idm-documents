@@ -10,6 +10,7 @@ import os
 import re
 import socket
 import struct
+import shutil
 import subprocess
 import sys
 import threading
@@ -34,17 +35,18 @@ LIB_DIR = Path(__file__).resolve().parent / "lib"
 FLASH_TOOL_PATH = str(LIB_DIR / "flashtool.py")
 
 def _find_klipper_env():
-    """优先使用 KLIPPER_ENV 环境变量，否则探测 klippy-env 下的 python3/python。"""
+    """优先使用 KLIPPER_ENV 环境变量，其次探测 idm-documents 目录下的 klippy-env，
+    找不到时回退全局 python3。"""
     env = os.environ.get("KLIPPER_ENV")
     if env:
         return env
     for candidate in (
-        os.path.expanduser("~/klippy-env/bin/python3"),
-        os.path.expanduser("~/klippy-env/bin/python"),
+        SCRIPT_DIR / "klippy-env" / "bin" / "python3",
+        SCRIPT_DIR / "klippy-env" / "bin" / "python",
     ):
-        if os.path.exists(candidate):
-            return candidate
-    return os.path.expanduser("~/klippy-env/bin/python3")
+        if candidate.exists():
+            return str(candidate)
+    return shutil.which("python3") or "python3"
 
 
 KLIPPER_ENV = _find_klipper_env()
