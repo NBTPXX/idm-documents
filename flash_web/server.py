@@ -307,8 +307,7 @@ def detect_bootloader_serial(serial_device, try_enter=True):
         f"import flash_usb as u; u.enter_bootloader('{serial_device}')",
     ]
     try:
-        klipper_scripts = os.path.join(KLIPPER_DIR, "scripts")
-        subprocess.run(enter_cmd, cwd=klipper_scripts, capture_output=True, timeout=15)
+        subprocess.run(enter_cmd, cwd=LIB_DIR, capture_output=True, timeout=15)
         time.sleep(3)
     except Exception:
         pass
@@ -865,10 +864,7 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                     "-c",
                     f"import flash_usb as u; u.enter_bootloader('{serial}')",
                 ]
-                cwd = os.path.join(KLIPPER_DIR, "scripts")
-                if not os.path.isdir(cwd):
-                    cwd = None
-                subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=15)
+                subprocess.run(cmd, cwd=LIB_DIR, capture_output=True, timeout=15)
                 self.send_json({"success": True})
             except Exception as e:
                 self.send_json({"success": False, "error": str(e)})
