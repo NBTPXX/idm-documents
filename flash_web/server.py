@@ -783,6 +783,25 @@ def _ws_decode_frame(conn):
     return {"opcode": opcode, "payload": payload}
 
 
+def _handle_pty_input(master_fd, payload):
+    """处理发往 pty 的输入。resize 控制消息（\x00RSZ cols rows）调整终端尺寸，
+    返回 True；普通输入直接写入，返回 False。"""
+    if payload.startswith(b"\x00RSZ "):
+        try:
+            _, spec = payload.split(b" ", 1)
+            cols_s, rows_s = spec.split()
+            cols, rows = int(cols_s), int(rows_s)
+            fcntl.ioctl(
+                master_fd,
+                termios.TIOCSWINSZ,
+                struct.pack("HHHH", rows, cols, 0, 0),
+            )
+        except (ValueError, OSError):
+            pass
+        return True
+    return False
+
+
 def _run_terminal(handler):
     """处理 WebSocket 升级并转发 PTY 数据。handler 为 FlashAPIHandler 实例。"""
     conn = handler.connection
@@ -839,6 +858,8 @@ def _run_terminal(handler):
                     except OSError:
                         break
                 elif opcode == 0x1:  # text
+                    if _handle_pty_input(master_fd, payload):
+                        continue
                     try:
                         os.write(master_fd, payload)
                     except OSError:

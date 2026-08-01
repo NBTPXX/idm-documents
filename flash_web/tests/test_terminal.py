@@ -100,6 +100,64 @@ class TerminalTest(unittest.TestCase):
             server_sock.close()
             client_sock.close()
 
+    def test_handle_pty_input_resize(self):
+        import fcntl
+        import struct
+        import termios
+
+        master_fd, slave_fd = os.openpty()
+        try:
+            handled = server._handle_pty_input(
+                master_fd, b"\x00RSZ 120 40"
+            )
+            self.assertTrue(handled)
+            winsize = struct.unpack(
+                "HHHH",
+                fcntl.ioctl(master_fd, termios.TIOCGWINSZ, b"\x00" * 8),
+            )
+            self.assertEqual((winsize[0], winsize[1]), (40, 120))
+        finally:
+            os.close(master_fd)
+            os.close(slave_fd)
+
+    def test_handle_pty_input_resize_bad_payload(self):
+        import fcntl
+        import struct
+        import termios
+
+        master_fd, slave_fd = os.openpty()
+        try:
+            fcntl.ioctl(
+                master_fd,
+                termios.TIOCSWINSZ,
+                struct.pack("HHHH", 24, 80, 0, 0),
+            )
+            handled = server._handle_pty_input(
+                master_fd, b"\x00RSZ notanumber 40"
+            )
+            self.assertTrue(handled)
+            winsize = struct.unpack(
+                "HHHH",
+                fcntl.ioctl(master_fd, termios.TIOCGWINSZ, b"\x00" * 8),
+            )
+            self.assertEqual((winsize[0], winsize[1]), (24, 80))
+        finally:
+            os.close(master_fd)
+            os.close(slave_fd)
+
+    def test_handle_pty_input_regular_text_not_resize(self):
+        master_fd, slave_fd = os.openpty()
+        try:
+            self.assertFalse(
+                server._handle_pty_input(master_fd, b"echo hi\n")
+            )
+            self.assertFalse(
+                server._handle_pty_input(master_fd, b'{"resize":[78,26]}')
+            )
+        finally:
+            os.close(master_fd)
+            os.close(slave_fd)
+
 
 if __name__ == "__main__":
     unittest.main()
