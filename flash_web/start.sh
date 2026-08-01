@@ -16,6 +16,7 @@ if [[ ! -f "${SCRIPT_DIR}/server.py" ]]; then
 fi
 
 export MOONRAKER_URL="${MOONRAKER_URL:-http://localhost:7125}"
+export IDM_PORT="${IDM_PORT:-8888}"
 
 if [[ -z "${IDM_FW_BASE:-}" ]]; then
     if [[ -d "${SCRIPT_DIR}/../IDM固件(Main firmware)" ]]; then
@@ -28,7 +29,7 @@ if [[ -z "${IDM_FW_BASE:-}" ]]; then
 fi
 
 echo ""
-echo "  启动地址: http://0.0.0.0:8888"
+echo "  启动地址: http://0.0.0.0:${IDM_PORT}"
 echo "  Moonraker: ${MOONRAKER_URL}"
 echo "  按 Ctrl+C 停止"
 echo ""

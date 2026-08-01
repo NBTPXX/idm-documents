@@ -59,7 +59,7 @@ KLIPPER_ENV = _find_klipper_env()
 KLIPPER_DIR = os.environ.get("KLIPPER_DIR", os.path.expanduser("~/klipper"))
 
 HOST = "0.0.0.0"
-PORT = 8888
+PORT = int(os.environ.get("IDM_PORT", "8888"))
 
 # ============================================================
 # 任务管理
