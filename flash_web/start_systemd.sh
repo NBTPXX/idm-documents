@@ -5,8 +5,22 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # 解析真实用户家目录，避免 systemd 环境未注入 HOME 时误用 /home/user
+user_home() {
+    local user="${1}"
+    if command -v getent &>/dev/null; then
+        getent passwd "${user}" 2>/dev/null | cut -d: -f6
+        return 0
+    fi
+    if command -v awk &>/dev/null; then
+        awk -F: -v u="${user}" '$1==u{print $6}' /etc/passwd 2>/dev/null
+        return 0
+    fi
+    echo "${HOME:-}"
+    return 0
+}
+
 if [[ -z "${HOME:-}" ]] || [[ "${HOME}" == "/home/user" ]]; then
-    HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"
+    HOME="$(user_home "$(id -un)")"
     export HOME="${HOME:-$SCRIPT_DIR}"
 fi
 
