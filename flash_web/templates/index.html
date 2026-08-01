@@ -1536,6 +1536,7 @@
           `${proto}//${location.host}/api/terminal/ws`,
         );
         termWs.onopen = () => {
+          if (termFit) termFit.fit();
           term.focus();
         };
         termWs.onmessage = (ev) => {
@@ -1555,7 +1556,7 @@
         });
         term.onResize(({ cols, rows }) => {
           if (termWs && termWs.readyState === WebSocket.OPEN) {
-            termWs.send(JSON.stringify({ resize: [cols, rows] }));
+            termWs.send(`\x00RSZ ${cols} ${rows}`);
           }
         });
       }
