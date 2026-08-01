@@ -20,7 +20,7 @@ SERVICE_NAME="idm_flash_web"
 SERVICE_PORT="${IDM_PORT:-8888}"
 
 # 用户信息解析：getent 可用时用原方案（getent | cut），
-# 不可用（精简系统）时回退 python3（server.py 的硬依赖）读 /etc/passwd。
+# 不可用（精简系统）时把 /data 当作用户目录，在其中查找 klipper/moonraker。
 user_name() {
     if command -v getent &>/dev/null; then
         getent passwd "$(id -un 2>/dev/null)" 2>/dev/null | cut -d: -f1
@@ -38,25 +38,15 @@ user_home() {
         getent passwd "${user}" 2>/dev/null | cut -d: -f6
         return 0
     fi
-    python3 - "${user}" <<'PYEOF' 2>/dev/null
-import os, pwd, sys
-arg = sys.argv[1] if len(sys.argv) > 1 else None
-if arg:
-    try:
-        print(pwd.getpwnam(arg).pw_dir)
-    except KeyError:
-        pass
-else:
-    try:
-        print(pwd.getpwuid(os.getuid()).pw_dir)
-    except KeyError:
-        pass
-PYEOF
+    echo "/data"
 }
 
 SERVICE_SCOPE="user"
 SERVICE_USER="${USER:-$(user_name)}"
-SERVICE_HOME="${HOME:-$(user_home "${SERVICE_USER}")}"
+# 统一家目录基准：getent 存在时解析真实 home，否则用 /data
+USER_HOME="$(user_home "${SERVICE_USER}")"
+USER_HOME="${USER_HOME:-/data}"
+SERVICE_HOME="${HOME:-${USER_HOME}}"
 
 port_in_use() {
     ss -tln 2>/dev/null | grep -q ":${1} "
@@ -107,7 +97,7 @@ choose_port() {
 if command -v sudo &>/dev/null && sudo -v; then
     SERVICE_SCOPE="system"
     SERVICE_HOME="$(user_home "${SERVICE_USER}")"
-    SERVICE_HOME="${SERVICE_HOME:-${HOME}}"
+    SERVICE_HOME="${SERVICE_HOME:-${USER_HOME}}"
 fi
 
 if [[ "${SERVICE_SCOPE}" == "system" ]]; then
@@ -117,11 +107,11 @@ else
 fi
 
 PYTHON_BIN="python3"
-if [[ -f "${HOME}/klippy-env/bin/python3" ]]; then
-    PYTHON_BIN="${HOME}/klippy-env/bin/python3"
+if [[ -f "${USER_HOME}/klippy-env/bin/python3" ]]; then
+    PYTHON_BIN="${USER_HOME}/klippy-env/bin/python3"
     print_info "Using Klipper Python: ${PYTHON_BIN}"
-elif [[ -f "${HOME}/klippy-env/bin/python" ]]; then
-    PYTHON_BIN="${HOME}/klippy-env/bin/python"
+elif [[ -f "${USER_HOME}/klippy-env/bin/python" ]]; then
+    PYTHON_BIN="${USER_HOME}/klippy-env/bin/python"
     print_info "Using Klipper Python: ${PYTHON_BIN}"
 fi
 
@@ -152,9 +142,9 @@ UPDATE_NAME="idm_flash_web"
 MOONRAKER_CONF=""
 
 for path in \
-    "${HOME}/printer_data/config/moonraker.conf" \
-    "${HOME}/klipper_config/moonraker.conf" \
-    "${HOME}/moonraker.conf"; do
+    "${USER_HOME}/printer_data/config/moonraker.conf" \
+    "${USER_HOME}/klipper_config/moonraker.conf" \
+    "${USER_HOME}/moonraker.conf"; do
     if [[ -f "${path}" ]]; then
         MOONRAKER_CONF="${path}"
         break
@@ -197,7 +187,7 @@ EOF
         print_ok "Moonraker update_manager configured"
     fi
 
-    ASVC_FILE="${HOME}/printer_data/moonraker.asvc"
+    ASVC_FILE="${USER_HOME}/printer_data/moonraker.asvc"
     if grep -q "^${SERVICE_NAME}$" "${ASVC_FILE}" 2>/dev/null; then
         print_info "${SERVICE_NAME} already in moonraker.asvc, skipping"
     else
@@ -214,7 +204,7 @@ fi
 # -----------------------------------------------------------
 SERVICE_FILE="${SCRIPT_DIR}/idm_flash_web.service"
 SYSTEMD_DIR="/etc/systemd/system"
-USER_SYSTEMD_DIR="${HOME}/.config/systemd/user"
+USER_SYSTEMD_DIR="${USER_HOME}/.config/systemd/user"
 
 if [[ -f "${SERVICE_FILE}" ]]; then
     sed \

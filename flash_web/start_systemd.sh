@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # 解析真实用户家目录：getent 可用时用原方案（getent | cut），
-# 不可用（精简系统）时回退 python3（server.py 硬依赖）读 /etc/passwd。
+# 不可用（精简系统）时把 /data 当作用户目录。
 user_home() {
     local user="${1:-}"
     if command -v getent &>/dev/null; then
@@ -15,25 +15,12 @@ user_home() {
         getent passwd "${user}" 2>/dev/null | cut -d: -f6
         return 0
     fi
-    python3 - "${user}" <<'PYEOF' 2>/dev/null
-import os, pwd, sys
-arg = sys.argv[1] if len(sys.argv) > 1 else None
-if arg:
-    try:
-        print(pwd.getpwnam(arg).pw_dir)
-    except KeyError:
-        pass
-else:
-    try:
-        print(pwd.getpwuid(os.getuid()).pw_dir)
-    except KeyError:
-        pass
-PYEOF
+    echo "/data"
 }
 
 if [[ -z "${HOME:-}" ]] || [[ "${HOME}" == "/home/user" ]]; then
     HOME="$(user_home)"
-    export HOME="${HOME:-$SCRIPT_DIR}"
+    export HOME="${HOME:-/data}"
 fi
 
 export MOONRAKER_URL="${MOONRAKER_URL:-http://localhost:7125}"
