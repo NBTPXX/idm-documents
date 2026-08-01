@@ -4,10 +4,18 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# 解析真实用户家目录：用 python3（server.py 硬依赖，精简系统必有）解析，
-# 不依赖 getent/awk/cut/id 等外部命令。不带参数时解析当前用户。
+# 解析真实用户家目录：getent 可用时用原方案（getent | cut），
+# 不可用（精简系统）时回退 python3（server.py 硬依赖）读 /etc/passwd。
 user_home() {
-    python3 - "${1:-}" <<'PYEOF' 2>/dev/null
+    local user="${1:-}"
+    if command -v getent &>/dev/null; then
+        if [[ -z "${user}" ]]; then
+            user="$(id -un 2>/dev/null)"
+        fi
+        getent passwd "${user}" 2>/dev/null | cut -d: -f6
+        return 0
+    fi
+    python3 - "${user}" <<'PYEOF' 2>/dev/null
 import os, pwd, sys
 arg = sys.argv[1] if len(sys.argv) > 1 else None
 if arg:

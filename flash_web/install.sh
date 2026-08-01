@@ -19,14 +19,26 @@ REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SERVICE_NAME="idm_flash_web"
 SERVICE_PORT="${IDM_PORT:-8888}"
 
-# 用户信息解析：用 python3（server.py 的硬依赖，精简系统必有），
-# 不依赖 getent/awk/cut/id 等外部命令。
+# 用户信息解析：getent 可用时用原方案（getent | cut），
+# 不可用（精简系统）时回退 python3（server.py 的硬依赖）读 /etc/passwd。
 user_name() {
+    if command -v getent &>/dev/null; then
+        getent passwd "$(id -un 2>/dev/null)" 2>/dev/null | cut -d: -f1
+        return 0
+    fi
     python3 -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_name)' 2>/dev/null
 }
 
 user_home() {
-    python3 - "${1:-}" <<'PYEOF' 2>/dev/null
+    local user="${1:-}"
+    if command -v getent &>/dev/null; then
+        if [[ -z "${user}" ]]; then
+            user="$(id -un 2>/dev/null)"
+        fi
+        getent passwd "${user}" 2>/dev/null | cut -d: -f6
+        return 0
+    fi
+    python3 - "${user}" <<'PYEOF' 2>/dev/null
 import os, pwd, sys
 arg = sys.argv[1] if len(sys.argv) > 1 else None
 if arg:
@@ -44,7 +56,7 @@ PYEOF
 
 SERVICE_SCOPE="user"
 SERVICE_USER="${USER:-$(user_name)}"
-SERVICE_HOME="${HOME:-$(user_home)}"
+SERVICE_HOME="${HOME:-$(user_home "${SERVICE_USER}")}"
 
 port_in_use() {
     ss -tln 2>/dev/null | grep -q ":${1} "
