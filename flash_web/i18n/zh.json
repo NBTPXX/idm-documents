@@ -85,7 +85,9 @@
   "err_select_fw": "请先选择固件文件",
   "err_enter_uuid": "请输入或查询 CAN UUID",
   "err_enter_serial": "请输入串口地址",
-
+  "term_title": "终端",
+  "term_warn_title": "终端",
+  "term_warn_body": "这是无认证的远程 Shell，仅在可信内网使用。可通过 IDM_TERMINAL=0 禁用。",
   "_backend": {
     "flash_start": "开始刷写: {file}",
     "flash_mode": "模式: {mode}, Bootloader: {bl}",

@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IDM Flash Tool</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css"
+    />
     <style>
       :root {
         --bg: #16191e;
@@ -351,6 +355,27 @@
         font-size: 0.8rem;
         color: var(--text-muted);
       }
+      .term-warn {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid var(--warn);
+        color: var(--warn);
+        border-radius: var(--radius);
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      #term {
+        display: none;
+        height: 400px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 6px;
+        background: #111318;
+      }
+      .console.hidden {
+        display: none;
+      }
       @media (max-width: 768px) {
         .grid {
           grid-template-columns: 1fr;
@@ -391,6 +416,14 @@
             ☀
           </button>
         </div>
+      </div>
+
+      <div class="term-warn" id="term-warn" style="display: none">
+        <b data-i18n="term_warn_title">⚠ Terminal</b>
+        <span data-i18n="term_warn_body"
+          >Web terminal is an unauthenticated remote shell. Only use on a
+          trusted local network. Disable via IDM_TERMINAL=0.</span
+        >
       </div>
 
       <div class="card" style="margin-bottom: 16px">
@@ -566,7 +599,14 @@
                 margin-bottom: 4px;
               "
             >
-              <h3 style="margin: 0" data-i18n="console_title">Flash Console</h3>
+              <div class="tabs" id="console-tabs" style="margin-bottom: 0">
+                <div class="tab active" data-pane="console" data-i18n="console_title">
+                  Flash Console
+                </div>
+                <div class="tab" data-pane="term" data-i18n="term_title">
+                  Terminal
+                </div>
+              </div>
               <div class="btn-group" style="margin: 0">
                 <button
                   class="btn btn-secondary btn-sm"
@@ -621,10 +661,13 @@
             </div>
           </div>
           <div class="console" id="console"></div>
+          <div id="term"></div>
         </div>
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
     <script>
       // ============================================================
       // i18n - 从 i18n/ 目录加载语言文件
@@ -1404,7 +1447,114 @@
         return d.innerHTML;
       }
 
+      // ============================================================
+      // Web Terminal (xterm.js + WebSocket)
+      // ============================================================
+      let term = null;
+      let termWs = null;
+      let termFit = null;
+
+      function terminalAvailable() {
+        return typeof window.Terminal !== "undefined";
+      }
+
+      async function checkTerminalEnabled() {
+        try {
+          const r = await fetch("/api/terminal/ws");
+          if (r.status === 403) {
+            document.getElementById("term-warn").style.display = "none";
+            const paneTerm = document.querySelector(
+              '#console-tabs .tab[data-pane="term"]',
+            );
+            if (paneTerm) paneTerm.style.display = "none";
+          } else {
+            document.getElementById("term-warn").style.display = "block";
+          }
+        } catch (e) {
+          document.getElementById("term-warn").style.display = "block";
+        }
+      }
+
+      document
+        .getElementById("console-tabs")
+        .addEventListener("click", function (e) {
+          if (!e.target.classList.contains("tab")) return;
+          document
+            .querySelectorAll("#console-tabs .tab")
+            .forEach((t) => t.classList.remove("active"));
+          e.target.classList.add("active");
+          const pane = e.target.dataset.pane;
+          const consoleEl = document.getElementById("console");
+          const termEl = document.getElementById("term");
+          consoleEl.classList.toggle("hidden", pane !== "console");
+          termEl.style.display = pane === "term" ? "block" : "none";
+          if (pane === "term") openTerminal();
+        });
+
+      function openTerminal() {
+        if (!terminalAvailable()) {
+          logConsole(
+            "error",
+            "xterm.js not loaded (CDN unreachable). Check network access to cdn.jsdelivr.net",
+          );
+          return;
+        }
+        if (term && termWs) {
+          term.focus();
+          if (termFit) termFit.fit();
+          return;
+        }
+        if (term) term.dispose();
+
+        term = new Terminal({
+          cursorBlink: true,
+          fontSize: 13,
+          fontFamily:
+            '"JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, monospace',
+          theme: {
+            background: "#111318",
+            foreground: "#d1d5db",
+            cursor: "#10b981",
+          },
+          convertEol: true,
+          scrollback: 5000,
+        });
+        termFit = new FitAddon.FitAddon();
+        term.loadAddon(termFit);
+        term.open(document.getElementById("term"));
+        termFit.fit();
+
+        const proto = location.protocol === "https:" ? "wss:" : "ws:";
+        termWs = new WebSocket(
+          `${proto}//${location.host}/api/terminal/ws`,
+        );
+        termWs.onopen = () => {
+          term.focus();
+        };
+        termWs.onmessage = (ev) => {
+          if (term) term.write(ev.data);
+        };
+        termWs.onclose = () => {
+          if (term) term.write("\r\n\x1b[31m[disconnected]\x1b[0m\r\n");
+        };
+        termWs.onerror = () => {
+          if (term) term.write("\r\n\x1b[31m[websocket error]\x1b[0m\r\n");
+        };
+
+        term.onData((data) => {
+          if (termWs && termWs.readyState === WebSocket.OPEN) {
+            termWs.send(data);
+          }
+        });
+        term.onResize(({ cols, rows }) => {
+          if (termWs && termWs.readyState === WebSocket.OPEN) {
+            termWs.send(JSON.stringify({ resize: [cols, rows] }));
+          }
+        });
+      }
+
       init();
+      checkTerminalEnabled();
     </script>
   </body>
 </html>

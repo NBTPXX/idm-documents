@@ -85,7 +85,9 @@
   "err_select_fw": "ファームファイルを選択してください",
   "err_enter_uuid": "CAN UUID を入力",
   "err_enter_serial": "ポートアドレスを入力",
-
+  "term_title": "ターミナル",
+  "term_warn_title": "ターミナル",
+  "term_warn_body": "認証なしのリモートシェルです。信頼できるローカルネットワークでのみ使用してください。IDM_TERMINAL=0 で無効化できます。",
   "_backend": {
     "flash_start": "書込開始: {file}",
     "flash_mode": "モード: {mode}, ブートローダー: {bl}",
