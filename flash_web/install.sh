@@ -185,9 +185,8 @@ if [[ -f "${SERVICE_FILE}" ]]; then
         -e "s|__FLASH_WEB_DIR__|${SCRIPT_DIR}|g" \
         -e "s|__FLASH_WEB_USER__|${SERVICE_USER}|g" \
         -e "s|__FLASH_WEB_HOME__|${SERVICE_HOME}|g" \
+        -e "s|__FLASH_WEB_PORT__|${SERVICE_PORT}|g" \
         "${SERVICE_FILE}" > "/tmp/${SERVICE_NAME}.service"
-    echo "Environment=IDM_FW_BASE=${REPO_DIR}" >> "/tmp/${SERVICE_NAME}.service"
-    echo "Environment=IDM_PORT=${SERVICE_PORT}" >> "/tmp/${SERVICE_NAME}.service"
 
     if [[ "${SERVICE_SCOPE}" == "system" ]]; then
         print_info "Installing system-level systemd service..."

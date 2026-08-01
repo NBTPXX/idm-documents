@@ -15,6 +15,8 @@ StandardError=journal
 Environment=PYTHONUNBUFFERED=1
 Environment=MOONRAKER_URL=http://localhost:7125
 Environment=HOME=__FLASH_WEB_HOME__
+Environment=IDM_FW_BASE=__FLASH_WEB_DIR__/..
+Environment=IDM_PORT=__FLASH_WEB_PORT__
 
 [Install]
 WantedBy=multi-user.target
