@@ -4,23 +4,27 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# 解析真实用户家目录，避免 systemd 环境未注入 HOME 时误用 /home/user
+# 解析真实用户家目录：用 python3（server.py 硬依赖，精简系统必有）解析，
+# 不依赖 getent/awk/cut/id 等外部命令。不带参数时解析当前用户。
 user_home() {
-    local user="${1}"
-    if command -v getent &>/dev/null; then
-        getent passwd "${user}" 2>/dev/null | cut -d: -f6
-        return 0
-    fi
-    if command -v awk &>/dev/null; then
-        awk -F: -v u="${user}" '$1==u{print $6}' /etc/passwd 2>/dev/null
-        return 0
-    fi
-    echo "${HOME:-}"
-    return 0
+    python3 - "${1:-}" <<'PYEOF' 2>/dev/null
+import os, pwd, sys
+arg = sys.argv[1] if len(sys.argv) > 1 else None
+if arg:
+    try:
+        print(pwd.getpwnam(arg).pw_dir)
+    except KeyError:
+        pass
+else:
+    try:
+        print(pwd.getpwuid(os.getuid()).pw_dir)
+    except KeyError:
+        pass
+PYEOF
 }
 
 if [[ -z "${HOME:-}" ]] || [[ "${HOME}" == "/home/user" ]]; then
-    HOME="$(user_home "$(id -un)")"
+    HOME="$(user_home)"
     export HOME="${HOME:-$SCRIPT_DIR}"
 fi
 

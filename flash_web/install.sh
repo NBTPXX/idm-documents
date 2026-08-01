@@ -18,24 +18,33 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SERVICE_NAME="idm_flash_web"
 SERVICE_PORT="${IDM_PORT:-8888}"
-SERVICE_SCOPE="user"
-SERVICE_USER="${USER}"
-SERVICE_HOME="${HOME}"
 
-# 解析用户家目录：优先 getent，回退 awk 解析 /etc/passwd（无 getent 的精简系统）
-user_home() {
-    local user="${1:-${USER:-$(id -un)}}"
-    if command -v getent &>/dev/null; then
-        getent passwd "${user}" 2>/dev/null | cut -d: -f6
-        return 0
-    fi
-    if command -v awk &>/dev/null; then
-        awk -F: -v u="${user}" '$1==u{print $6}' /etc/passwd 2>/dev/null
-        return 0
-    fi
-    echo "${HOME:-}"
-    return 0
+# 用户信息解析：用 python3（server.py 的硬依赖，精简系统必有），
+# 不依赖 getent/awk/cut/id 等外部命令。
+user_name() {
+    python3 -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_name)' 2>/dev/null
 }
+
+user_home() {
+    python3 - "${1:-}" <<'PYEOF' 2>/dev/null
+import os, pwd, sys
+arg = sys.argv[1] if len(sys.argv) > 1 else None
+if arg:
+    try:
+        print(pwd.getpwnam(arg).pw_dir)
+    except KeyError:
+        pass
+else:
+    try:
+        print(pwd.getpwuid(os.getuid()).pw_dir)
+    except KeyError:
+        pass
+PYEOF
+}
+
+SERVICE_SCOPE="user"
+SERVICE_USER="${USER:-$(user_name)}"
+SERVICE_HOME="${HOME:-$(user_home)}"
 
 port_in_use() {
     ss -tln 2>/dev/null | grep -q ":${1} "
@@ -264,7 +273,7 @@ echo ""
 echo "========================================="
 print_ok "Installation complete!"
 echo ""
-echo "  URL: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo '<device-IP>'):${SERVICE_PORT}"
+echo "  URL: http://$(python3 -c 'import socket; s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(("8.8.8.8", 80)); print(s.getsockname()[0]); s.close()' 2>/dev/null || echo '<device-IP>'):${SERVICE_PORT}"
 echo "  Logs: sudo journalctl -u ${SERVICE_NAME} -f"
 echo ""
 echo "  Embed in Mainsail/Fluidd via iframe"
