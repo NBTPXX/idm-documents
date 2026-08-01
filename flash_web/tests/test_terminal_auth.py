@@ -38,6 +38,38 @@ def test_verify_wrong_password_false():
     assert server.verify_system_password("nobody", "wrong-pass-xyz") is False
 
 
+def test_shadow_crypt_verify(monkeypatch):
+    import crypt
+
+    h = crypt.crypt("secret123", crypt.mksalt(crypt.METHOD_SHA512))
+    assert server._crypt_password("secret123", h) == h
+    assert server._crypt_password("wrong", h) != h
+
+
+def test_shadow_locked_hash_false(monkeypatch):
+    _real_open = open
+
+    def fake_open(path, *a, **k):
+        if path == "/etc/shadow":
+            return _real_open("/dev/null", "r")
+        return _real_open(path, *a, **k)
+
+    monkeypatch.setattr("builtins.open", fake_open)
+    assert server.shadow_authenticate("locked", "x") is False
+
+
+def test_shadow_unknown_user_false(monkeypatch):
+    assert server.shadow_authenticate("ghost_user_zzz", "x") is False
+
+
+def test_shadow_unreadable_none(monkeypatch):
+    def fake_open(path, *a, **k):
+        raise PermissionError("denied")
+
+    monkeypatch.setattr("builtins.open", fake_open)
+    assert server.shadow_authenticate("root", "x") is None
+
+
 def test_token_issue_check_ok():
     token = server._issue_terminal_token("alice")
     assert len(token) >= 32

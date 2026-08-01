@@ -905,14 +905,77 @@ def su_authenticate(username, password):
             pass
 
 
+_SHADOW_CRYPT_LOCK = threading.Lock()
+_SHADOW_CRYPT_LIB = None
+_SHADOW_PY_CRYPT = None
+
+
+def _crypt_password(password, salt):
+    """用 crypt 算法计算密码哈希。优先 Python 内置 crypt 模块（3.13 移除），
+    回退 ctypes 调 libcrypt。返回哈希串；不可用时返回 None。"""
+    global _SHADOW_CRYPT_LIB, _SHADOW_PY_CRYPT
+    try:
+        if _SHADOW_PY_CRYPT is None:
+            import crypt as _py_crypt
+            _SHADOW_PY_CRYPT = _py_crypt
+        return _SHADOW_PY_CRYPT.crypt(password, salt)
+    except (ImportError, AttributeError):
+        _SHADOW_PY_CRYPT = False
+    if _SHADOW_CRYPT_LIB is None:
+        try:
+            import ctypes
+            import ctypes.util
+            lib_name = ctypes.util.find_library("crypt") or "libcrypt.so.1"
+            lib = ctypes.CDLL(lib_name)
+            lib.crypt.restype = ctypes.c_char_p
+            lib.crypt.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+            _SHADOW_CRYPT_LIB = lib
+        except (OSError, AttributeError):
+            _SHADOW_CRYPT_LIB = False
+    if not _SHADOW_CRYPT_LIB:
+        return None
+    with _SHADOW_CRYPT_LOCK:
+        try:
+            result = _SHADOW_CRYPT_LIB.crypt(
+                password.encode("utf-8"), salt.encode("utf-8")
+            )
+            return result.decode("utf-8") if result else None
+        except (OSError, ValueError):
+            return None
+
+
+def shadow_authenticate(username, password):
+    """直接读取 /etc/shadow 用 crypt 比对密码哈希（精简系统无 PAM/su 时的回退）。
+    需要 root 权限读 /etc/shadow。返回 True/False；shadow 不可读时返回 None。"""
+    try:
+        with open("/etc/shadow", "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                parts = line.rstrip("\n").split(":")
+                if len(parts) >= 2 and parts[0] == username:
+                    break
+            else:
+                return False
+    except OSError:
+        return None
+    shadow_hash = parts[1]
+    if not shadow_hash or shadow_hash in ("*", "!", "!!"):
+        return False
+    try:
+        computed = _crypt_password(password, shadow_hash)
+    except (ValueError, OSError):
+        return False
+    if computed is None:
+        return None
+    return computed == shadow_hash
+
+
 def verify_system_password(username, password):
-    """验证系统用户密码。返回 True/False；无法验证(无 PAM 且无 su)返回 None。"""
-    result = pam_authenticate(username, password)
-    if result is not None:
-        return result
-    result = su_authenticate(username, password)
-    if result is not None:
-        return result
+    """验证系统用户密码。按 PAM → su → /etc/shadow(crypt) 顺序尝试，
+    返回 True/False；全部不可用时返回 None。"""
+    for checker in (pam_authenticate, su_authenticate, shadow_authenticate):
+        result = checker(username, password)
+        if result is not None:
+            return result
     return None
 
 
