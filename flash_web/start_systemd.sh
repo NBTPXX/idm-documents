@@ -11,6 +11,7 @@ if [[ -z "${HOME:-}" ]] || [[ "${HOME}" == "/home/user" ]]; then
 fi
 
 export MOONRAKER_URL="${MOONRAKER_URL:-http://localhost:7125}"
+export IDM_PORT="${IDM_PORT:-8888}"
 
 if [[ -z "${IDM_FW_BASE:-}" ]]; then
     if [[ -d "${SCRIPT_DIR}/../IDM固件(Main firmware)" ]]; then

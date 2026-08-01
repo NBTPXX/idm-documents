@@ -17,10 +17,56 @@ print_warn()  { echo -e "${YELLOW}  !! $1${NC}"; }
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SERVICE_NAME="idm_flash_web"
-SERVICE_PORT="8888"
+SERVICE_PORT="${IDM_PORT:-8888}"
 SERVICE_SCOPE="user"
 SERVICE_USER="${USER}"
 SERVICE_HOME="${HOME}"
+
+port_in_use() {
+    ss -tln 2>/dev/null | grep -q ":${1} "
+}
+
+next_free_port() {
+    local port="${1}"
+    while port_in_use "${port}"; do
+        port=$((port + 1))
+    done
+    echo "${port}"
+}
+
+choose_port() {
+    # 仅在用户未显式指定 IDM_PORT 时进行端口选择
+    if [[ -n "${IDM_PORT:-}" ]]; then
+        if port_in_use "${SERVICE_PORT}"; then
+            print_warn "Port ${SERVICE_PORT} (IDM_PORT) is already in use"
+        fi
+        return
+    fi
+    if port_in_use "${SERVICE_PORT}"; then
+        print_warn "Port ${SERVICE_PORT} is already in use"
+        local suggested
+        suggested="$(next_free_port "${SERVICE_PORT}")"
+        print_info "Suggested free port: ${suggested}"
+        local user_port=""
+        if [[ -t 0 ]] && command -v read &>/dev/null; then
+            if read -r -p "Enter a new port (default ${suggested}): " user_port; then
+                if [[ -n "${user_port}" ]]; then
+                    SERVICE_PORT="${user_port}"
+                else
+                    SERVICE_PORT="${suggested}"
+                fi
+            else
+                SERVICE_PORT="${suggested}"
+            fi
+        else
+            SERVICE_PORT="${suggested}"
+            print_info "Non-interactive install, using port ${SERVICE_PORT}"
+        fi
+        if port_in_use "${SERVICE_PORT}"; then
+            print_warn "Port ${SERVICE_PORT} is still in use, start may fail. Free it or re-run with IDM_PORT=<port>"
+        fi
+    fi
+}
 
 if command -v sudo &>/dev/null && sudo -v; then
     SERVICE_SCOPE="system"
@@ -57,6 +103,10 @@ chmod +x "${SCRIPT_DIR}/start.sh"
 chmod +x "${SCRIPT_DIR}/start_systemd.sh"
 chmod +x "${SCRIPT_DIR}/server.py"
 print_ok "Done"
+
+# 端口选择：8888 被占用时允许用户换端口
+choose_port
+print_info "Using port ${SERVICE_PORT}"
 
 
 # -----------------------------------------------------------
@@ -137,6 +187,7 @@ if [[ -f "${SERVICE_FILE}" ]]; then
         -e "s|__FLASH_WEB_HOME__|${SERVICE_HOME}|g" \
         "${SERVICE_FILE}" > "/tmp/${SERVICE_NAME}.service"
     echo "Environment=IDM_FW_BASE=${REPO_DIR}" >> "/tmp/${SERVICE_NAME}.service"
+    echo "Environment=IDM_PORT=${SERVICE_PORT}" >> "/tmp/${SERVICE_NAME}.service"
 
     if [[ "${SERVICE_SCOPE}" == "system" ]]; then
         print_info "Installing system-level systemd service..."
