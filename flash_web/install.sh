@@ -48,6 +48,24 @@ USER_HOME="$(user_home "${SERVICE_USER}")"
 USER_HOME="${USER_HOME:-/data}"
 SERVICE_HOME="${HOME:-${USER_HOME}}"
 
+# printer_data 目录：getent 存在时用家目录下 printer_data，
+# 无 getent（/data 基准）时优先 /usr/share/printer_data，其次家目录下的 printer_data
+printer_data_dir() {
+    local d
+    if command -v getent &>/dev/null; then
+        echo "${USER_HOME}/printer_data"
+        return 0
+    fi
+    for d in "/usr/share/printer_data" "${USER_HOME}/printer_data"; do
+        if [[ -d "${d}" ]]; then
+            echo "${d}"
+            return 0
+        fi
+    done
+    echo "/usr/share/printer_data"
+}
+PD_DIR="$(printer_data_dir)"
+
 port_in_use() {
     ss -tln 2>/dev/null | grep -q ":${1} "
 }
@@ -142,7 +160,7 @@ UPDATE_NAME="idm_flash_web"
 MOONRAKER_CONF=""
 
 for path in \
-    "${USER_HOME}/printer_data/config/moonraker.conf" \
+    "${PD_DIR}/config/moonraker.conf" \
     "${USER_HOME}/klipper_config/moonraker.conf" \
     "${USER_HOME}/moonraker.conf"; do
     if [[ -f "${path}" ]]; then
@@ -187,7 +205,7 @@ EOF
         print_ok "Moonraker update_manager configured"
     fi
 
-    ASVC_FILE="${USER_HOME}/printer_data/moonraker.asvc"
+    ASVC_FILE="${PD_DIR}/moonraker.asvc"
     if grep -q "^${SERVICE_NAME}$" "${ASVC_FILE}" 2>/dev/null; then
         print_info "${SERVICE_NAME} already in moonraker.asvc, skipping"
     else
