@@ -614,7 +614,7 @@
                   Terminal
                 </div>
               </div>
-              <div class="btn-group" style="margin: 0">
+              <div class="btn-group" id="flash-btn-group" style="margin: 0">
                 <button
                   class="btn btn-secondary btn-sm"
                   id="btn-enter-bl"
@@ -1493,8 +1493,10 @@
           const pane = e.target.dataset.pane;
           const consoleEl = document.getElementById("console");
           const termEl = document.getElementById("term");
+          const flashBtns = document.getElementById("flash-btn-group");
           consoleEl.classList.toggle("hidden", pane !== "console");
           termEl.style.display = pane === "term" ? "block" : "none";
+          flashBtns.style.display = pane === "console" ? "" : "none";
           if (pane === "term") openTerminal();
         });
 
