@@ -668,7 +668,58 @@
             </div>
           </div>
           <div class="console" id="console"></div>
-          <div id="term"></div>
+          <div id="term-login" style="display: none">
+            <div class="card" style="max-width: 380px; margin: 12px auto">
+              <h3 style="margin: 0 0 4px" data-i18n="term_login_title">
+                Terminal Login
+              </h3>
+              <div
+                style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px"
+                data-i18n="term_login_hint"
+              >
+                Enter a local system account to open the terminal
+              </div>
+              <div
+                id="term-login-err"
+                style="display: none; color: #ef4444; font-size: 0.8rem; margin-bottom: 8px"
+              ></div>
+              <input
+                id="term-user"
+                type="text"
+                placeholder="Username"
+                data-i18n="term_username"
+                data-i18n-placeholder
+                style="width: 100%; box-sizing: border-box; padding: 7px 9px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text)"
+              />
+              <input
+                id="term-pass"
+                type="password"
+                placeholder="Password"
+                data-i18n="term_password"
+                data-i18n-placeholder
+                autocomplete="current-password"
+                style="width: 100%; box-sizing: border-box; padding: 7px 9px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text)"
+              />
+              <div style="display: flex; justify-content: space-between; align-items: center">
+                <button
+                  class="btn btn-primary"
+                  id="term-login-btn"
+                  data-i18n="term_login_btn"
+                >
+                  Sign in
+                </button>
+                <button
+                  class="btn btn-secondary btn-sm"
+                  id="term-logout-btn"
+                  style="display: none"
+                  data-i18n="term_logout_btn"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="term" style="display: none"></div>
         </div>
       </div>
     </div>
@@ -1465,10 +1516,29 @@
         return typeof window.Terminal !== "undefined";
       }
 
+      function termToken() {
+        return sessionStorage.getItem("idm_term_token") || "";
+      }
+
+      function termAuthUser() {
+        return sessionStorage.getItem("idm_term_user") || "";
+      }
+
+      function setTermToken(token, username) {
+        if (token) {
+          sessionStorage.setItem("idm_term_token", token);
+          sessionStorage.setItem("idm_term_user", username || "");
+        } else {
+          sessionStorage.removeItem("idm_term_token");
+          sessionStorage.removeItem("idm_term_user");
+        }
+      }
+
       async function checkTerminalEnabled() {
         try {
-          const r = await fetch("/api/terminal/ws");
-          if (r.status === 403) {
+          const r = await fetch("/api/terminal/status");
+          const data = await r.json();
+          if (!data.enabled) {
             document.getElementById("term-warn").style.display = "none";
             const paneTerm = document.querySelector(
               '#console-tabs .tab[data-pane="term"]',
@@ -1482,30 +1552,82 @@
         }
       }
 
-      document
-        .getElementById("console-tabs")
-        .addEventListener("click", function (e) {
-          if (!e.target.classList.contains("tab")) return;
-          document
-            .querySelectorAll("#console-tabs .tab")
-            .forEach((t) => t.classList.remove("active"));
-          e.target.classList.add("active");
-          const pane = e.target.dataset.pane;
-          const consoleEl = document.getElementById("console");
-          const termEl = document.getElementById("term");
-          const flashBtns = document.getElementById("flash-btn-group");
-          consoleEl.classList.toggle("hidden", pane !== "console");
-          termEl.style.display = pane === "term" ? "block" : "none";
-          flashBtns.style.display = pane === "console" ? "" : "none";
-          if (pane === "term") openTerminal();
-        });
+      function showTermLogin() {
+        const loginEl = document.getElementById("term-login");
+        const termEl = document.getElementById("term");
+        loginEl.style.display = "block";
+        termEl.style.display = "none";
+        document.getElementById("term-logout-btn").style.display = "none";
+        document.getElementById("term-login-err").style.display = "none";
+        document.getElementById("term-user").value = termAuthUser();
+        document.getElementById("term-pass").value = "";
+        document.getElementById("term-user").focus();
+      }
 
-      function openTerminal() {
-        if (!terminalAvailable()) {
-          logConsole(
-            "error",
-            "xterm.js not loaded (CDN unreachable). Check network access to cdn.jsdelivr.net",
-          );
+      function showTerminal() {
+        const loginEl = document.getElementById("term-login");
+        const termEl = document.getElementById("term");
+        loginEl.style.display = "none";
+        termEl.style.display = "block";
+        document.getElementById("term-logout-btn").style.display = "";
+        openTerminal();
+      }
+
+      async function termLoginSubmit() {
+        const username = document.getElementById("term-user").value.trim();
+        const password = document.getElementById("term-pass").value;
+        const errEl = document.getElementById("term-login-err");
+        const btn = document.getElementById("term-login-btn");
+        if (!username || !password) return;
+        btn.disabled = true;
+        try {
+          const r = await fetch("/api/terminal/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await r.json();
+          if (r.ok && data.token) {
+            setTermToken(data.token, data.username);
+            errEl.style.display = "none";
+            showTerminal();
+          } else {
+            errEl.textContent =
+              data.error === "too many attempts, try again later"
+                ? t("term_login_ratelimit")
+                : t("term_login_fail");
+            errEl.style.display = "block";
+          }
+        } catch (e) {
+          errEl.textContent = t("term_login_unauth");
+          errEl.style.display = "block";
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function termLogout() {
+        if (termWs) {
+          try {
+            termWs.close();
+          } catch (e) {}
+          termWs = null;
+        }
+        if (term) {
+          try {
+            term.dispose();
+          } catch (e) {}
+          term = null;
+          termFit = null;
+        }
+        setTermToken(null, null);
+        showTermLogin();
+      }
+
+      function connectTerminal() {
+        const token = termToken();
+        if (!token) {
+          showTermLogin();
           return;
         }
         if (term && termWs) {
@@ -1535,7 +1657,7 @@
 
         const proto = location.protocol === "https:" ? "wss:" : "ws:";
         termWs = new WebSocket(
-          `${proto}//${location.host}/api/terminal/ws`,
+          `${proto}//${location.host}/api/terminal/ws?token=${encodeURIComponent(token)}`,
         );
         termWs.onopen = () => {
           if (termFit) termFit.fit();
@@ -1562,6 +1684,55 @@
           }
         });
       }
+
+      function openTerminal() {
+        if (!terminalAvailable()) {
+          logConsole(
+            "error",
+            "xterm.js not loaded (CDN unreachable). Check network access to cdn.jsdelivr.net",
+          );
+          return;
+        }
+        connectTerminal();
+      }
+
+      document
+        .getElementById("term-login-btn")
+        .addEventListener("click", termLoginSubmit);
+      document
+        .getElementById("term-pass")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter") termLoginSubmit();
+        });
+      document
+        .getElementById("term-user")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter")
+            document.getElementById("term-pass").focus();
+        });
+      document
+        .getElementById("term-logout-btn")
+        .addEventListener("click", termLogout);
+
+      document
+        .getElementById("console-tabs")
+        .addEventListener("click", function (e) {
+          if (!e.target.classList.contains("tab")) return;
+          document
+            .querySelectorAll("#console-tabs .tab")
+            .forEach((t) => t.classList.remove("active"));
+          e.target.classList.add("active");
+          const pane = e.target.dataset.pane;
+          const consoleEl = document.getElementById("console");
+          const termEl = document.getElementById("term");
+          const termLoginEl = document.getElementById("term-login");
+          const flashBtns = document.getElementById("flash-btn-group");
+          consoleEl.classList.toggle("hidden", pane !== "console");
+          termEl.style.display = pane === "term" ? "block" : "none";
+          termLoginEl.style.display = "none";
+          flashBtns.style.display = pane === "console" ? "" : "none";
+          if (pane === "term") openTerminal();
+        });
 
       init();
       checkTerminalEnabled();
