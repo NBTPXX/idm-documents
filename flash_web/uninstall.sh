@@ -66,12 +66,22 @@ for conf in \
     "${HOME}/moonraker.conf"; do
     if [[ -f "${conf}" ]] && grep -q "\[update_manager ${UPDATE_NAME}\]" "${conf}" 2>/dev/null; then
         print_info "Removing Moonraker [update_manager ${UPDATE_NAME}] config..."
-        awk -v name="${UPDATE_NAME}" '
-          BEGIN { skip=0 }
-          $0 ~ "^\\[update_manager " name "\\]" { skip=1; next }
-          skip && /^\[/ { skip=0 }
-          !skip { print }
-        ' "${conf}" > "${conf}.tmp" && mv "${conf}.tmp" "${conf}"
+        python3 - "${conf}" "${UPDATE_NAME}" <<'PYEOF' > "${conf}.tmp" && mv "${conf}.tmp" "${conf}"
+import re, sys
+path, name = sys.argv[1], sys.argv[2]
+pat = re.compile(r"^\[update_manager " + re.escape(name) + r"\]\s*$")
+out, skip = [], False
+with open(path, encoding="utf-8") as f:
+    for line in f:
+        if pat.match(line):
+            skip = True
+            continue
+        if skip and line.startswith("["):
+            skip = False
+        if not skip:
+            out.append(line)
+sys.stdout.write("".join(out))
+PYEOF
         print_ok "Removed from ${conf}"
     fi
 done
