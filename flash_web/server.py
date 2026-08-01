@@ -4,6 +4,8 @@ IDM 固件刷写 Web 服务
 提供 REST API + 前端页面，可接入 Moonraker 体系
 """
 
+import base64
+import hashlib
 import json
 import glob
 import os
@@ -18,9 +20,13 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, urlencode
 import mimetypes
+import fcntl
+import pty
+import select
+import termios
 
 # ============================================================
 # 配置
@@ -706,6 +712,168 @@ def moonraker_request(endpoint):
 
 
 # ============================================================
+# WebSocket / Web Terminal
+# 纯标准库实现 RFC 6455，前端使用 xterm.js
+# 安全：无认证，仅当 IDM_TERMINAL != "0" 时启用
+# ============================================================
+WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+
+def terminal_enabled():
+    return os.environ.get("IDM_TERMINAL", "1") != "0"
+
+
+def _ws_accept_key(sec_websocket_key):
+    return base64.b64encode(
+        hashlib.sha1((sec_websocket_key + WS_GUID).encode("utf-8")).digest()
+    ).decode("ascii")
+
+
+def _recv_exact(conn, n):
+    data = b""
+    while len(data) < n:
+        chunk = conn.recv(n - len(data))
+        if not chunk:
+            return None
+        data += chunk
+    return data
+
+
+def _ws_encode_frame(payload, opcode=0x1):
+    frame = bytearray([0x80 | opcode])
+    length = len(payload)
+    if length < 126:
+        frame.append(length)
+    elif length < 65536:
+        frame.append(126)
+        frame.extend(struct.pack(">H", length))
+    else:
+        frame.append(127)
+        frame.extend(struct.pack(">Q", length))
+    frame.extend(payload)
+    return bytes(frame)
+
+
+def _ws_decode_frame(conn):
+    header = _recv_exact(conn, 2)
+    if header is None:
+        return None
+    opcode = header[0] & 0x0F
+    masked = header[1] & 0x80
+    length = header[1] & 0x7F
+    if length == 126:
+        ext = _recv_exact(conn, 2)
+        if ext is None:
+            return None
+        length = struct.unpack(">H", ext)[0]
+    elif length == 127:
+        ext = _recv_exact(conn, 8)
+        if ext is None:
+            return None
+        length = struct.unpack(">Q", ext)[0]
+    if masked:
+        mask = _recv_exact(conn, 4)
+        if mask is None:
+            return None
+    else:
+        mask = None
+    payload = _recv_exact(conn, length) or b""
+    if mask:
+        payload = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+    return {"opcode": opcode, "payload": payload}
+
+
+def _run_terminal(handler):
+    """处理 WebSocket 升级并转发 PTY 数据。handler 为 FlashAPIHandler 实例。"""
+    conn = handler.connection
+    key = handler.headers.get("Sec-WebSocket-Key")
+    if not key:
+        handler.send_json({"error": "websocket upgrade required"}, 400)
+        return
+
+    accept = _ws_accept_key(key)
+    handler.protocol_version = "HTTP/1.1"
+    handler.send_response(101, "Switching Protocols")
+    handler.send_header("Upgrade", "websocket")
+    handler.send_header("Connection", "Upgrade")
+    handler.send_header("Sec-WebSocket-Accept", accept)
+    handler.end_headers()
+    handler.close_connection = True
+
+    shell = os.environ.get("SHELL") or "/bin/bash"
+    master_fd, slave_fd = pty.openpty()
+    try:
+        proc = subprocess.Popen(
+            [shell],
+            stdin=slave_fd,
+            stdout=slave_fd,
+            stderr=slave_fd,
+            close_fds=True,
+            start_new_session=True,
+        )
+    finally:
+        os.close(slave_fd)
+
+    try:
+        conn.settimeout(0.2)
+        while True:
+            try:
+                frame = _ws_decode_frame(conn)
+            except socket.timeout:
+                frame = None
+            except (OSError, ConnectionError):
+                break
+
+            if frame is not None:
+                opcode = frame["opcode"]
+                payload = frame["payload"]
+                if opcode == 0x8:  # close
+                    try:
+                        conn.sendall(_ws_encode_frame(payload or b"", opcode=0x8))
+                    except OSError:
+                        pass
+                    break
+                elif opcode == 0x9:  # ping
+                    try:
+                        conn.sendall(_ws_encode_frame(payload, opcode=0xA))
+                    except OSError:
+                        break
+                elif opcode == 0x1:  # text
+                    try:
+                        os.write(master_fd, payload)
+                    except OSError:
+                        break
+
+            if proc.poll() is not None:
+                break
+
+            try:
+                rlist, _, _ = select.select([master_fd], [], [], 0.05)
+                if rlist:
+                    try:
+                        data = os.read(master_fd, 4096)
+                    except OSError:
+                        data = b""
+                    if not data:
+                        break
+                    try:
+                        conn.sendall(_ws_encode_frame(data, opcode=0x1))
+                    except OSError:
+                        break
+            except (OSError, ValueError):
+                break
+    finally:
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        try:
+            os.close(master_fd)
+        except Exception:
+            pass
+
+
+# ============================================================
 # HTTP 路由处理
 # ============================================================
 class FlashAPIHandler(SimpleHTTPRequestHandler):
@@ -750,6 +918,12 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
         # API 路由
         if path == "/api/env":
             self.send_json(detect_environment())
+
+        elif path == "/api/terminal/ws":
+            if not terminal_enabled():
+                self.send_json({"error": "terminal disabled"}, 403)
+                return
+            _run_terminal(self)
 
         elif path == "/api/devices/can":
             self.send_json(query_can_devices())
@@ -953,10 +1127,11 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
 # ============================================================
 def main():
     os.chdir(str(TEMPLATES_DIR))
-    server = HTTPServer((HOST, PORT), FlashAPIHandler)
+    server = ThreadingHTTPServer((HOST, PORT), FlashAPIHandler)
     print(f"\n  IDM Flash Web 服务已启动")
     print(f"  地址: http://localhost:{PORT}")
     print(f"  Moonraker: {MOONRAKER_URL}")
+    print(f"  终端: {'已启用' if terminal_enabled() else '已禁用(IDM_TERMINAL=0)'}")
     print(f"  按 Ctrl+C 停止\n")
     try:
         server.serve_forever()

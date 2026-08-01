@@ -85,7 +85,9 @@
   "err_select_fw": "Сначала выберите файл прошивки",
   "err_enter_uuid": "Введите CAN UUID",
   "err_enter_serial": "Введите адрес порта",
-
+  "term_title": "Терминал",
+  "term_warn_title": "Терминал",
+  "term_warn_body": "Это удалённая оболочка без аутентификации. Используйте только в доверенной локальной сети. Отключить: IDM_TERMINAL=0.",
   "_backend": {
     "flash_start": "Запись: {file}",
     "flash_mode": "Режим: {mode}, загрузчик: {bl}",
