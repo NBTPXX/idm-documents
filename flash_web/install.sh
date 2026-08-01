@@ -22,6 +22,21 @@ SERVICE_SCOPE="user"
 SERVICE_USER="${USER}"
 SERVICE_HOME="${HOME}"
 
+# 解析用户家目录：优先 getent，回退 awk 解析 /etc/passwd（无 getent 的精简系统）
+user_home() {
+    local user="${1:-${USER:-$(id -un)}}"
+    if command -v getent &>/dev/null; then
+        getent passwd "${user}" 2>/dev/null | cut -d: -f6
+        return 0
+    fi
+    if command -v awk &>/dev/null; then
+        awk -F: -v u="${user}" '$1==u{print $6}' /etc/passwd 2>/dev/null
+        return 0
+    fi
+    echo "${HOME:-}"
+    return 0
+}
+
 port_in_use() {
     ss -tln 2>/dev/null | grep -q ":${1} "
 }
@@ -70,7 +85,7 @@ choose_port() {
 
 if command -v sudo &>/dev/null && sudo -v; then
     SERVICE_SCOPE="system"
-    SERVICE_HOME="$(getent passwd "${SERVICE_USER}" | cut -d: -f6)"
+    SERVICE_HOME="$(user_home "${SERVICE_USER}")"
     SERVICE_HOME="${SERVICE_HOME:-${HOME}}"
 fi
 
