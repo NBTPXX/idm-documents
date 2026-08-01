@@ -340,6 +340,7 @@
         color: var(--text-muted);
         border-bottom: 2px solid transparent;
         transition: all 0.15s;
+        white-space: nowrap;
       }
       .tab:hover {
         color: var(--text);
@@ -597,9 +598,15 @@
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 4px;
+                flex-wrap: wrap;
+                row-gap: 4px;
               "
             >
-              <div class="tabs" id="console-tabs" style="margin-bottom: 0">
+              <div
+                class="tabs"
+                id="console-tabs"
+                style="margin-bottom: 0; flex-shrink: 0"
+              >
                 <div class="tab active" data-pane="console" data-i18n="console_title">
                   Flash Console
                 </div>
