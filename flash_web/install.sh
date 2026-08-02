@@ -174,20 +174,12 @@ if [[ -z "${MOONRAKER_CONF}" ]]; then
 else
     # 极简系统（如 flyos-fast）常缺 polkit/packagekit 依赖，update_manager
     # 初始化系统包更新会报 "Unix process subject does not have uid set"。
-    # 确保主段存在并禁用系统更新，避免 PolKit 警告。幂等：已存在则跳过。
-    if ! grep -q "^\[update_manager\]" "${MOONRAKER_CONF}" 2>/dev/null; then
-        cat >> "${MOONRAKER_CONF}" <<EOF
-
-[update_manager]
-enable_system_updates: False
-EOF
-        print_info "Added [update_manager] with enable_system_updates: False"
-    elif ! grep -A5 "^\[update_manager\]" "${MOONRAKER_CONF}" | grep -q "enable_system_updates:"; then
-        sed -i "/^\[update_manager\]/a enable_system_updates: False" "${MOONRAKER_CONF}"
-        print_info "Added enable_system_updates: False to [update_manager]"
-    fi
-
-    if grep -q "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" 2>/dev/null; then
+    # 仅当主段 [update_manager] 已存在且带 enable_system_updates: False 时
+    # 才写入 flash_web 更新配置，否则跳过，避免触发 PolKit 警告。
+    if ! grep -A5 "^\[update_manager\]" "${MOONRAKER_CONF}" 2>/dev/null \
+         | grep -q "enable_system_updates: False"; then
+        print_warn "No [update_manager] with enable_system_updates: False in moonraker.conf, skipping update_manager config for flash_web"
+    elif grep -q "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" 2>/dev/null; then
         print_info "[update_manager ${UPDATE_NAME}] already exists, skipping"
         if grep -A10 "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" | grep -q "^is_system_service:"; then
             sed -i "/^\[update_manager ${UPDATE_NAME}\]/,/^\[/{s/^is_system_service:.*/is_system_service: ${IS_SYSTEM_SERVICE}/}" "${MOONRAKER_CONF}"
