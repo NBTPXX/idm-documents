@@ -172,6 +172,21 @@ done
 if [[ -z "${MOONRAKER_CONF}" ]]; then
     print_warn "moonraker.conf not found, skipping update_manager config"
 else
+    # 极简系统（如 flyos-fast）常缺 polkit/packagekit 依赖，update_manager
+    # 初始化系统包更新会报 "Unix process subject does not have uid set"。
+    # 确保主段存在并禁用系统更新，避免 PolKit 警告。幂等：已存在则跳过。
+    if ! grep -q "^\[update_manager\]" "${MOONRAKER_CONF}" 2>/dev/null; then
+        cat >> "${MOONRAKER_CONF}" <<EOF
+
+[update_manager]
+enable_system_updates: False
+EOF
+        print_info "Added [update_manager] with enable_system_updates: False"
+    elif ! grep -A5 "^\[update_manager\]" "${MOONRAKER_CONF}" | grep -q "enable_system_updates:"; then
+        sed -i "/^\[update_manager\]/a enable_system_updates: False" "${MOONRAKER_CONF}"
+        print_info "Added enable_system_updates: False to [update_manager]"
+    fi
+
     if grep -q "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" 2>/dev/null; then
         print_info "[update_manager ${UPDATE_NAME}] already exists, skipping"
         if grep -A10 "\[update_manager ${UPDATE_NAME}\]" "${MOONRAKER_CONF}" | grep -q "^is_system_service:"; then
