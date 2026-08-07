@@ -69,10 +69,9 @@ PROBE_CALIBRATE METHOD=AUTO
 
 ### 步骤 6：开始打印时加入自动校准
 
-在打印起始 G-code 中添加以下命令，每次打印前自动进行 Touch 校准和 Z 偏移：
+在打印起始 G-code 中只添加以下命令，每次打印前自动测量 Z 偏移：
 
 ```gcode
-IDM_TOUCH CALIBRATE=1
 PROBE_CALIBRATE METHOD=AUTO
 ```
 
@@ -85,7 +84,7 @@ PROBE_CALIBRATE METHOD=AUTO
 3. 执行 `PROBE_CALIBRATE METHOD=AUTO` 自动 Z 偏移
 4. 开始打印
 
-也可以在打印起始 G-code 中集成以上命令，实现全自动校准。
+日常打印时，将 `PROBE_CALIBRATE METHOD=AUTO` 集成到打印起始 G-code 即可。
 
 ## 五、注意事项
 
