@@ -24,6 +24,67 @@ def enter_bootloader(device):
     except (IOError, OSError) as e:
         pass
 
+# Katapult serial protocol primitives
+KATAPULT_HEADER = b"\x01\x88"
+KATAPULT_TRAILER = b"\x99\x03"
+
+def _crc16_ccitt(buf):
+    crc = 0xFFFF
+    for b in buf:
+        b ^= crc & 0xFF
+        b ^= (b & 0x0F) << 4
+        crc = ((b << 8) | (crc >> 8)) ^ (b >> 4) ^ (b << 3)
+    return crc & 0xFFFF
+
+def build_katapult_cmd(cmd, payload=b""):
+    wcnt = (len(payload) // 4) & 0xFF
+    out = bytearray(KATAPULT_HEADER)
+    out.append(cmd)
+    out.append(wcnt)
+    out.extend(payload)
+    crc_val = _crc16_ccitt(out[2:])
+    out.extend(struct.pack("<H", crc_val))
+    out.extend(KATAPULT_TRAILER)
+    return bytes(out)
+
+# Attempt to exit bootloader via Katapult serial protocol
+def exit_bootloader(device):
+    try:
+        import serial
+    except ImportError:
+        sys.stderr.write("pyserial is required to exit bootloader on %s\n" % (device,))
+        return
+    try:
+        s = serial.Serial(baudrate=250000, timeout=0, exclusive=True)
+        s.port = device
+        s.open()
+        s.reset_input_buffer()
+        s.write(build_katapult_cmd(0x90))
+        s.flush()
+        time.sleep(0.3)
+        s.reset_input_buffer()
+        s.write(build_katapult_cmd(0x11))
+        s.flush()
+        raw = b""
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            chunk = s.read(4096)
+            if chunk:
+                raw += chunk
+                if KATAPULT_TRAILER in raw and raw.find(KATAPULT_HEADER) >= 0:
+                    break
+            time.sleep(0.05)
+        s.write(build_katapult_cmd(0x15))
+        s.flush()
+        time.sleep(0.3)
+        try:
+            s.close()
+        except Exception:
+            pass
+        time.sleep(1)
+    except (IOError, OSError) as e:
+        sys.stderr.write("Failed to exit bootloader on %s: %s\n" % (device, e))
+
 # Translate a serial device name to a stable serial name in /dev/serial/by-path/
 def translate_serial_to_tty(device):
     ttyname = os.path.realpath(device)
