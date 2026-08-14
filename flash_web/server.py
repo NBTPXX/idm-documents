@@ -366,12 +366,34 @@ def query_dfu_devices():
 # ============================================================
 # 固件列表
 # ============================================================
+def _read_readme(dir_path):
+    for candidate in ("README.md", "readme.md", "README.MD", "Readme.md"):
+        p = dir_path / candidate
+        if p.is_file():
+            try:
+                return p.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                return None
+    return None
+
+
 def _scan_firmware_dir(base_dir, is_deployer=False, is_rp2040=False):
     versions = []
     if not base_dir.exists():
         return versions
 
+    def _version_entry(label, ver_files, readme_dir):
+        entry = {
+            "label": label,
+            "files": sorted(ver_files, key=lambda x: x["name"]),
+        }
+        readme = _read_readme(readme_dir)
+        if readme:
+            entry["readme"] = readme
+        return entry
+
     current_files = []
+    version_dirs = []
     for f in base_dir.iterdir():
         if f.is_file() and f.suffix in (".bin", ".uf2"):
             if is_rp2040:
@@ -382,11 +404,26 @@ def _scan_firmware_dir(base_dir, is_deployer=False, is_rp2040=False):
                 if not is_deployer and not is_main:
                     continue
             current_files.append({"name": f.name, "path": str(f)})
+        elif f.is_dir() and f.name.lower() not in ("old",):
+            version_dirs.append(f)
 
     if current_files:
-        versions.append(
-            {"label": "最新版", "files": sorted(current_files, key=lambda x: x["name"])}
-        )
+        versions.append(_version_entry("最新版", current_files, base_dir))
+
+    for version_dir in sorted(version_dirs, key=lambda x: x.name, reverse=True):
+        ver_files = []
+        for f in version_dir.rglob("*"):
+            if f.is_file() and f.suffix in (".bin", ".uf2"):
+                if is_rp2040:
+                    is_dep = "deployer" in f.name.lower() or "canboot_" in f.name.lower()
+                    is_main = "idm_" in f.name.lower() or "IDM_" in f.name
+                    if is_deployer and not is_dep:
+                        continue
+                    if not is_deployer and not is_main:
+                        continue
+                ver_files.append({"name": f.name, "path": str(f)})
+        if ver_files:
+            versions.append(_version_entry(version_dir.name, ver_files, version_dir))
 
     old_dir = base_dir / "old"
     if old_dir.exists() and old_dir.is_dir():
@@ -408,10 +445,7 @@ def _scan_firmware_dir(base_dir, is_deployer=False, is_rp2040=False):
                         ver_files.append({"name": f.name, "path": str(f)})
                 if ver_files:
                     versions.append(
-                        {
-                            "label": version_dir.name,
-                            "files": sorted(ver_files, key=lambda x: x["name"]),
-                        }
+                        _version_entry(version_dir.name, ver_files, version_dir)
                     )
 
     return versions
@@ -1072,35 +1106,12 @@ class FlashAPIHandler(SimpleHTTPRequestHandler):
                 )
                 return
             try:
-                import serial as pyserial
-
-                s = pyserial.Serial(baudrate=250000, timeout=0, exclusive=True)
-                s.port = serial
-                s.open()
-                s.reset_input_buffer()
-                s.write(build_katapult_cmd(0x90))
-                s.flush()
-                time.sleep(0.3)
-                s.reset_input_buffer()
-                s.write(build_katapult_cmd(0x11))
-                s.flush()
-                raw = b""
-                deadline = time.time() + 3
-                while time.time() < deadline:
-                    chunk = s.read(4096)
-                    if chunk:
-                        raw += chunk
-                        if KATAPULT_TRAILER in raw and raw.find(KATAPULT_HEADER) >= 0:
-                            break
-                    time.sleep(0.05)
-                s.write(build_katapult_cmd(0x15))
-                s.flush()
-                time.sleep(0.3)
-                try:
-                    s.close()
-                except Exception:
-                    pass
-                time.sleep(1)
+                cmd = [
+                    KLIPPER_ENV,
+                    "-c",
+                    f"import flash_usb as u; u.exit_bootloader('{serial}')",
+                ]
+                subprocess.run(cmd, cwd=LIB_DIR, capture_output=True, timeout=20)
                 self.send_json({"success": True})
             except Exception as e:
                 self.send_json({"success": False, "error": str(e)})

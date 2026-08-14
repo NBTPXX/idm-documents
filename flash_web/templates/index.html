@@ -315,6 +315,18 @@
         background: rgba(251, 191, 36, 0.15);
         color: #fbbf24;
       }
+      .fw-readme {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+        font-size: 0.75rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 140px;
+        overflow-y: auto;
+      }
       .info-row {
         display: flex;
         justify-content: space-between;
@@ -503,7 +515,7 @@
             </select>
 
             <label data-i18n="fw_version">Firmware Version</label>
-            <select id="fw-version" onchange="updateFirmwareList()"></select>
+            <select id="fw-version"></select>
 
             <label data-i18n="fw_select">Select Firmware</label>
             <div class="fw-list" id="fw-list"></div>
@@ -974,6 +986,20 @@
       ) {
         container.innerHTML = "";
         const verFiles = versions[versionIdx].files;
+
+        const readme = versions[versionIdx].readme;
+        if (readme) {
+          const box = document.createElement("div");
+          box.className = "fw-readme";
+          const pre = document.createElement("pre");
+          pre.style.margin = "0";
+          pre.style.whiteSpace = "pre-wrap";
+          pre.style.fontFamily = "inherit";
+          pre.textContent = readme;
+          box.appendChild(pre);
+          container.appendChild(box);
+        }
+
         const filtered = verFiles.filter((f) => freqMatches(f.name, freq));
         const displayFiles = filtered.length > 0 ? filtered : verFiles;
 
