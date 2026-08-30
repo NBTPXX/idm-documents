@@ -34,4 +34,15 @@ if [[ -z "${IDM_FW_BASE:-}" ]]; then
     fi
 fi
 
-exec python3 "${SCRIPT_DIR}/server.py"
+if [[ -n "${KLIPPER_ENV:-}" && -f "${KLIPPER_ENV}" ]]; then
+    PYTHON_BIN="${KLIPPER_ENV}"
+elif [[ -f "${HOME}/klippy-env/bin/python3" ]]; then
+    PYTHON_BIN="${HOME}/klippy-env/bin/python3"
+elif [[ -f "${HOME}/klippy-env/bin/python" ]]; then
+    PYTHON_BIN="${HOME}/klippy-env/bin/python"
+else
+    PYTHON_BIN="$(command -v python3)"
+fi
+export KLIPPER_ENV="${PYTHON_BIN}"
+
+exec "${PYTHON_BIN}" "${SCRIPT_DIR}/server.py"

@@ -41,14 +41,13 @@ LIB_DIR = Path(__file__).resolve().parent / "lib"
 FLASH_TOOL_PATH = str(LIB_DIR / "flashtool.py")
 
 def _find_klipper_env():
-    """优先使用 KLIPPER_ENV 环境变量，其次探测 idm-documents 目录下的 klippy-env，
-    找不到时回退全局 python3。"""
+    """选择 Klipper Python：环境变量、用户环境、系统 Python。"""
     env = os.environ.get("KLIPPER_ENV")
-    if env:
+    if env and Path(env).is_file():
         return env
     for candidate in (
-        SCRIPT_DIR / "klippy-env" / "bin" / "python3",
-        SCRIPT_DIR / "klippy-env" / "bin" / "python",
+        Path.home() / "klippy-env" / "bin" / "python3",
+        Path.home() / "klippy-env" / "bin" / "python",
     ):
         if candidate.exists():
             return str(candidate)
