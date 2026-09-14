@@ -160,6 +160,26 @@ def query_can_devices():
         }
         for device in unassigned
     ]
+    # Always query Katapult as well as Moonraker.  The two sources are merged
+    # by UUID below, so a healthy Moonraker scan never suppresses a fresh
+    # Katapult bootloader scan.
+    if env.get("flash_tool"):
+        python_exe = KLIPPER_ENV if os.path.exists(KLIPPER_ENV) else sys.executable
+        cmd = [python_exe, env["flash_tool"], "-i", can_if, "-q", "-v"]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+            output = result.stdout + result.stderr
+            for match in re.finditer(
+                    r"Detected UUID:\s*([0-9a-fA-F]+),\s*Application:\s*(.+)", output):
+                device_rows.append({
+                    "name": "",
+                    "uuid": match.group(1).lower(),
+                    "application": match.group(2).strip(),
+                    "mcu_model": "",
+                    "source": "unassigned",
+                })
+        except Exception:
+            pass
 
     config_response = moonraker_request("/printer/objects/query?configfile")
     objects_response = moonraker_request("/printer/objects/list")
