@@ -483,6 +483,15 @@ def list_firmware(fw_base=None):
             "main": _scan_firmware_dir(fw_idm),
             "deployer": _scan_firmware_dir(fw_canboot, is_deployer=True),
         },
+        # CH32 and STM32 firmware are stored in separate subdirectories.
+        # Keep the top-level recursive scan above for backward compatibility,
+        # while exposing explicit CH32 paths to clients that select that MCU.
+        "ch32": {
+            "main": _scan_firmware_dir(fw_idm / "v3.5 dev" / "ch32"),
+            "deployer": _scan_firmware_dir(
+                fw_canboot / "ch32", is_deployer=True
+            ),
+        },
         "rp2040": {
             "main": _scan_firmware_dir(fw_rp2040, is_rp2040=True),
             "deployer": _scan_firmware_dir(fw_rp2040, is_deployer=True, is_rp2040=True),
